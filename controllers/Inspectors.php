@@ -10,6 +10,7 @@ class Inspectors extends AdminController
     {
         parent::__construct();
         $this->load->model('inspectors_model');
+        $this->load->model('clients_model');
     }
 
     /* Get all inspectors in case user go on index page */

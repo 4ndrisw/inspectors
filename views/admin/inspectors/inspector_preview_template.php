@@ -87,10 +87,10 @@
                </div>
                <div class="pull-right _buttons">
                   <?php if(staff_can('edit', 'inspectors')){ ?>
-                  <a href="<?php echo admin_url('inspectors/inspector/'.$inspector->userid); ?>" class="btn btn-default btn-with-tooltip" data-toggle="tooltip" title="<?php echo _l('edit_inspector_tooltip'); ?>" data-placement="bottom"><i class="fa fa-pencil-square-o"></i></a>
+                  <a href="<?php echo admin_url('inspectors/inspector/'.$inspector->userid); ?>" class="btn btn-default btn-with-tooltip" data-toggle="tooltip" title="<?php echo _l('edit_inspector_tooltip'); ?>" data-placement="bottom"><i class="fa-solid fa-pen-to-square"></i></a>
                   <?php } ?>
                   <div class="btn-group">
-                     <a href="#" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fa fa-file-pdf-o"></i><?php if(is_mobile()){echo ' PDF';} ?> <span class="caret"></span></a>
+                     <a href="#" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fa-regular fa-file-pdf"></i><?php if(is_mobile()){echo ' PDF';} ?> <span class="caret"></span></a>
                      <ul class="dropdown-menu dropdown-menu-right">
                         <li class="hidden-xs"><a href="<?php echo admin_url('inspectors/pdf/'.$inspector->userid.'?output_type=I'); ?>"><?php echo _l('view_pdf'); ?></a></li>
                         <li class="hidden-xs"><a href="<?php echo admin_url('inspectors/pdf/'.$inspector->userid.'?output_type=I'); ?>" target="_blank"><?php echo _l('view_pdf_in_new_window'); ?></a></li>
@@ -175,12 +175,6 @@
                      <?php } ?>
                      <div class="col-md-6 col-sm-6">
                         <h4 class="bold">
-                           <?php
-                              $tags = get_tags_in($inspector->userid,'inspector');
-                              if(count($tags) > 0){
-                                echo '<i class="fa fa-tag" aria-hidden="true" data-toggle="tooltip" data-title="'.html_escape(implode(', ',$tags)).'"></i>';
-                              }
-                              ?>
                            <a href="<?php echo admin_url('inspectors/inspector/'.$inspector->userid); ?>">
                            <span id="inspector-number">
                            <?php echo format_inspector_number($inspector->userid); ?>
@@ -188,7 +182,7 @@
                            </a>
                         </h4>
                         <address>
-                           <?php echo format_organization_info(); ?>
+                           <?php echo format_inspector_info($inspector); ?>
                         </address>
                      </div>
                      <div class="col-sm-6 text-right">

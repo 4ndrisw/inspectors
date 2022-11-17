@@ -23,6 +23,8 @@ class Inspectors_model extends Clients_Model
             3,
             4,
         ]);
+
+        $this->load->model('clients_model');
     }
 
     /**
@@ -643,7 +645,8 @@ class Inspectors_model extends Clients_Model
         unset($data['group_id']);
         unset($data['userid']);
         unset($data['DataTables_Table_2_length']);
-        $data = $this->check_zero_columns($data);
+        
+        //$data = $this->check_zero_columns($data);
 
         $data['datecreated'] = date('Y-m-d H:i:s');
 
@@ -938,7 +941,13 @@ class Inspectors_model extends Clients_Model
      * @return boolean
      * Update client informations
      */
+
     public function update($data, $id, $client_request = false)
+    {
+        return $this->clients_model->update($data, $id, $client_request);
+    }
+
+    public function _update($data, $id, $client_request = false)
     {
         if (isset($data['update_all_other_transactions'])) {
             $update_all_other_transactions = true;
@@ -973,7 +982,8 @@ class Inspectors_model extends Clients_Model
         unset($data['group_id']);
         unset($data['userid']);
         unset($data['DataTables_Table_2_length']);
-        $data = $this->check_zero_columns($data);
+        
+        //$data = $this->clients_model->check_zero_columns($data);
 
         $data = hooks()->apply_filters('before_client_updated', $data, $id);
 

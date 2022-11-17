@@ -278,17 +278,17 @@ function is_last_inspector($id)
 function format_inspector_number($id)
 {
     $CI = &get_instance();
-    $CI->db->select('date,number,prefix,number_format')->from(db_prefix() . 'inspectors')->where('id', $id);
+    $CI->db->select('datecreated,number,prefix,number_format')->from(db_prefix() . 'clients')->where('userid', $id);
     $inspector = $CI->db->get()->row();
 
     if (!$inspector) {
         return '';
     }
 
-    $number = inspector_number_format($inspector->number, $inspector->number_format, $inspector->prefix, $inspector->date);
+    $number = inspector_number_format($inspector->number, $inspector->number_format, $inspector->prefix, $inspector->datecreated);
 
     return hooks()->apply_filters('format_inspector_number', $number, [
-        'id'       => $id,
+        'userid'       => $id,
         'inspector' => $inspector,
     ]);
 }
@@ -672,6 +672,72 @@ function _format_data_inspector_feature($data)
     return $data;
 }
 
+
+if (!function_exists('format_inspector_info')) {
+    /**
+     * Format inspector info format
+     * @param  object $inspector inspector from database
+     * @param  string $for      where this info will be used? Admin area, HTML preview?
+     * @return string
+     */
+    function format_inspector_info($inspector, $for = '')
+    {
+        $format = get_option('company_info_format');
+        $countryCode = '';
+        $countryName = '';
+
+        if ($country = get_country($inspector->country)) {
+            $countryCode = $country->iso2;
+            $countryName = $country->short_name;
+        }
+
+        $inspectorTo = '<b>' . $inspector->company . '</b>';
+
+        if ($for == 'admin') {
+            $hrefAttrs = '';
+            $hrefAttrs = ' href="' . admin_url('clients/client/' . $inspector->userid) . '" data-toggle="tooltip" data-title="' . _l('client') . '"';
+            $inspectorTo = '<a' . $hrefAttrs . '>' . $inspectorTo . '</a>';
+        }
+
+        if ($for == 'html' || $for == 'admin') {
+            $phone = '<a href="tel:' . $inspector->phone . '">' . $inspector->phone . '</a>';
+            $email = '<a href="mailto:' . $inspector->email . '">' . $inspector->email . '</a>';
+        }
+
+        $format = _info_format_replace('company_name', $inspectorTo, $format);
+        $format = _info_format_replace('address', $inspector->address . ' ' . $inspector->city, $format);
+
+        $format = _info_format_replace('city', NULL, $format);
+        $format = _info_format_replace('state', $inspector->state . ' ' . $inspector->zip, $format);
+
+        $format = _info_format_replace('country_code', $countryCode, $format);
+        $format = _info_format_replace('country_name', $countryName, $format);
+
+        $format = _info_format_replace('zip_code', '', $format);
+        $format = _info_format_replace('vat_number_with_label', '', $format);
+
+        $whereCF = [];
+        if (is_custom_fields_for_customers_portal()) {
+            $whereCF['show_on_client_portal'] = 1;
+        }
+        $customFieldsProposals = get_custom_fields('inspector', $whereCF);
+
+        foreach ($customFieldsProposals as $field) {
+            $value  = get_custom_field_value($inspector->id, $field['id'], 'inspector');
+            $format = _info_format_custom_field($field['id'], $field['name'], $value, $format);
+        }
+
+        // If no custom fields found replace all custom fields merge fields to empty
+        $format = _info_format_custom_fields_check($customFieldsProposals, $format);
+        $format = _maybe_remove_first_and_last_br_tag($format);
+
+        // Remove multiple white spaces
+        $format = preg_replace('/\s+/', ' ', $format);
+        $format = trim($format);
+
+        return hooks()->apply_filters('inspector_info_text', $format, ['inspector' => $inspector, 'for' => $for]);
+    }
+}
 
 /**
  * Unsed $_POST request names, mostly they are used as helper inputs in the form

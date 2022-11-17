@@ -197,14 +197,15 @@ foreach ($rResult as $aRow) {
         $isPerson = true;
     }
 
+//    $row[] = '<a href="' . admin_url('perusahaan/list_perusahaan/' . $aRow[db_prefix() . 'perusahaan.id'] .'#/'. $aRow[db_prefix() . 'perusahaan.id']) . '" onclick="init_perusahaan(' . $aRow[db_prefix() . 'perusahaan.id'] . '); return false;">' . $aRow['subject'] . '</a>';
+
     $url = admin_url('inspectors/list_inspectors/' . $aRow['userid']);
 
     if ($isPerson && $aRow['contact_id']) {
         $url .= '?contactid=' . $aRow['contact_id'];
     }
 
-    $company = '<a href="' . $url . '">' . $company . '</a>';
-
+    $company = '<a href="' . admin_url('inspectors/list_inspectors/' . $aRow['userid'] .'#/'. $aRow['userid']) . '" onclick="init_inspector(' . $aRow['userid'] . '); return false;">' . $aRow['company'] . '</a>';
     $company .= '<div class="row-options">';
     $company .= '<a href="' . $url . '">' . _l('view') . '</a>';
 
