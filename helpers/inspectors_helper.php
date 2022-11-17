@@ -795,3 +795,5 @@ function project_has_inspectors($project_id)
 
     return ($totalProjectsInspectord > 0 ? true : false);
 }
+
+

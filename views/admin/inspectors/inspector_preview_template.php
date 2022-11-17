@@ -20,6 +20,24 @@
                      </a>
                   </li>
                   <li role="presentation">
+                     <a href="#tab_staffs" onclick="initDataTable('.table-staffs', admin_url + 'inspectors/table_staffs/' + <?php echo $inspector->userid ;?> + '/' + 'inspector', undefined, undefined, undefined,[1,'asc']); return false;" aria-controls="tab_staffs" role="tab" data-toggle="tab">
+                     <?php echo _l('inspector_staffs'); ?>
+                     <?php
+                        $total_staffs = total_rows(db_prefix().'staff',
+                          array(
+                           'is_not_staff'=>1,
+                           //'staff'=>get_staff_user_id(),
+                           'client_type'=>'inspector',
+                           'client_id'=>$inspector->userid
+                           )
+                          );
+                        if($total_staffs > 0){
+                          echo '<span class="badge">'.$total_staffs.'</span>';
+                        }
+                        ?>
+                     </a>
+                  </li>
+                  <li role="presentation">
                      <a href="#tab_activity" aria-controls="tab_activity" role="tab" data-toggle="tab">
                      <?php echo _l('inspector_view_activity_tooltip'); ?>
                      </a>
@@ -218,6 +236,25 @@
             </div>
             <div role="tabpanel" class="tab-pane" id="tab_tasks">
                <?php init_relation_tasks_table(array('data-new-rel-id'=>$inspector->userid,'data-new-rel-type'=>'inspector')); ?>
+            </div>
+            <div role="tabpanel" class="tab-pane" id="tab_staffs">
+               <a href="#" data-toggle="modal" class="btn btn-info" data-target=".staff-modal-inspector-<?php echo $inspector->userid; ?>"><i class="fa fa-bell-o"></i> <?php echo _l('inspector_set_staff_title'); ?></a>
+               <hr />
+               <?php 
+               //render_datatable(array( _l( 'staff_description'), _l( 'staff_date'), _l( 'staff_staff'), _l( 'staff_is_notified')), 'staffs'); 
+
+                        $table_data = [
+                            _l('staff_dt_name'),
+                            _l('staff_dt_email'),
+                            _l('role'),
+                            _l('staff_dt_last_Login'),
+                            _l('staff_dt_active'),
+                        ];
+                        render_datatable($table_data, 'staffs');
+
+
+               ?>
+               <?php $this->load->view('admin/includes/modals/staff',array('id'=>$inspector->userid,'name'=>'inspector','members'=>isset($members) ? $members : [],'staff_title'=>_l('inspector_set_staff_title'))); ?>
             </div>
             <div role="tabpanel" class="tab-pane" id="tab_reminders">
                <a href="#" data-toggle="modal" class="btn btn-info" data-target=".reminder-modal-inspector-<?php echo $inspector->userid; ?>"><i class="fa fa-bell-o"></i> <?php echo _l('inspector_set_reminder_title'); ?></a>

@@ -638,4 +638,23 @@ class Inspectors extends AdminController
             }
         }
     }
+/*
+    public function get_staff($userid='')
+    {
+        $this->app->get_table_data(module_views_path('inspectors', 'admin/tables/staff'));
+    }
+*/
+    public function table_staffs($userid,$inspector = true)
+    {
+        if (
+            !has_permission('inspectors', '', 'view')
+            && !has_permission('inspectors', '', 'view_own')
+            && get_option('allow_staff_view_inspectors_assigned') == 0
+        ) {
+            ajax_access_denied();
+        }
+        $this->app->get_table_data(module_views_path('inspectors', 'admin/tables/staff'));
+    }
+
+
 }
