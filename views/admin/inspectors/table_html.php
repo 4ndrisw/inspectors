@@ -1,23 +1,23 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 
 $table_data = array(
-   _l('inspector_dt_table_heading_number'),
-   _l('inspector_dt_table_heading_amount'),
-   _l('inspectors_total_tax'),
+   _l('the_number_sign'),
+   _l('pjk3'),
+   _l('contact_primary'),
    array(
-      'name'=>_l('invoice_inspector_year'),
+      'name'=>_l('company_primary_email'),
       'th_attrs'=>array('class'=>'not_visible')
    ),
    array(
-      'name'=>_l('inspector_dt_table_heading_client'),
+      'name'=>_l('company_primary_email'),
       'th_attrs'=>array('class'=> (isset($client) ? 'not_visible' : ''))
    ),
-   _l('projects'),
-   _l('tags'),
-   _l('inspector_dt_table_heading_date'),
-   _l('inspector_dt_table_heading_expirydate'),
-   _l('reference_no'),
-   _l('inspector_dt_table_heading_status'));
+   _l('company_siup'),
+   _l('clients_list_phone'),
+   _l('customer_active'),
+//   _l('inspector_dt_table_heading_expirydate'),
+   //_l('reference_no'),
+   _l('preffered_pjk3'));
 
 $custom_fields = get_custom_fields('inspector',array('show_on_table'=>1));
 

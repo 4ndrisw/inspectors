@@ -1,6 +1,6 @@
 // Init single inspector
-function init_inspector(id) {
-    load_small_table_item(id, '#inspector', 'inspectorid', 'inspectors/get_inspector_data_ajax', '.table-inspectors');
+function init_inspector(userid) {
+    load_small_table_item(userid, '#inspector', 'inspectorid', 'inspectors/get_inspector_data_ajax', '.table-inspectors');
 }
 
 

@@ -255,24 +255,18 @@ class Inspectors extends AdminController
             die;
         }
 
-        $inspector->date       = _d($inspector->date);
-        $inspector->expirydate = _d($inspector->expirydate);
-        if ($inspector->invoiceid !== null) {
-            $this->load->model('invoices_model');
-            $inspector->invoice = $this->invoices_model->get($inspector->invoiceid);
-        }
+//        $inspector->date       = _d($inspector->date);
+//        $inspector->expirydate = _d($inspector->expirydate);
+//        if ($inspector->invoiceid !== null) {
+//            $this->load->model('invoices_model');
+//            $inspector->invoice = $this->invoices_model->get($inspector->invoiceid);
+//        }
 
-        if ($inspector->sent == 0) {
-            $template_name = 'inspector_send_to_customer';
-        } else {
-            $template_name = 'inspector_send_to_customer_already_sent';
-        }
-
-        $data = prepare_mail_preview_data($template_name, $inspector->clientid);
+//        $data = prepare_mail_preview_data($template_name, $inspector->clientid);
 
         $data['activity']          = $this->inspectors_model->get_inspector_activity($id);
         $data['inspector']          = $inspector;
-        $data['members']           = $this->staff_model->get('', ['active' => 1]);
+//        $data['members']           = $this->staff_model->get('', ['active' => 1]);
         $data['inspector_statuses'] = $this->inspectors_model->get_statuses();
         $data['totalNotes']        = total_rows(db_prefix() . 'notes', ['rel_id' => $id, 'rel_type' => 'inspector']);
 
@@ -566,7 +560,7 @@ class Inspectors extends AdminController
             }
         }
 
-        $data['id']       = $id;
+        $data['userid']       = $id;
         $data['inspector'] = $this->get_inspector_data_ajax($id, true);
         $this->load->view('admin/inspectors/pipeline/inspector', $data);
     }

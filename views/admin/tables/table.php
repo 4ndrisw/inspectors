@@ -1,119 +1,180 @@
 <?php
 
 defined('BASEPATH') or exit('No direct script access allowed');
+$is_pjk3=0;
 
-$project_id = $this->ci->input->post('project_id');
+$hasPermissionDelete = has_permission('customers', '', 'delete');
+
+$custom_fields = get_table_custom_fields('customers');
+$this->ci->db->query("SET sql_mode = ''");
 
 $aColumns = [
-    'number',
-    'total',
-    'total_tax',
-    'YEAR(date) as year',
-    get_sql_select_client_company(),
-    db_prefix() . 'projects.name as project_name',
-    '(SELECT GROUP_CONCAT(name SEPARATOR ",") FROM ' . db_prefix() . 'taggables JOIN ' . db_prefix() . 'tags ON ' . db_prefix() . 'taggables.tag_id = ' . db_prefix() . 'tags.id WHERE rel_id = ' . db_prefix() . 'inspectors.id and rel_type="inspector" ORDER by tag_order ASC) as tags',
-    'date',
-    'expirydate',
-    'reference_no',
-    db_prefix() . 'inspectors.status',
-    ];
-
-$join = [
-    'LEFT JOIN ' . db_prefix() . 'clients ON ' . db_prefix() . 'clients.userid = ' . db_prefix() . 'inspectors.clientid',
-    'LEFT JOIN ' . db_prefix() . 'currencies ON ' . db_prefix() . 'currencies.id = ' . db_prefix() . 'inspectors.currency',
-    'LEFT JOIN ' . db_prefix() . 'projects ON ' . db_prefix() . 'projects.id = ' . db_prefix() . 'inspectors.project_id',
+    '1',
+    db_prefix().'clients.userid as userid',
+    'company',
+    'firstname',
+    'email',
+    'siup',
+    'is_preffered',
+    db_prefix().'clients.phonenumber as phonenumber',
+    db_prefix().'clients.active',
 ];
 
-$sIndexColumn = 'id';
-$sTable       = db_prefix() . 'inspectors';
+$sIndexColumn = 'userid';
+$sTable       = db_prefix().'clients';
+$where        = [];
+// Add blank where all filter can be stored
+$filter = [];
 
-$custom_fields = get_table_custom_fields('inspector');
+$join = [
+    'LEFT JOIN '.db_prefix().'contacts ON '.db_prefix().'contacts.userid='.db_prefix().'clients.userid AND '.db_prefix().'contacts.is_primary=1',
+];
 
 foreach ($custom_fields as $key => $field) {
     $selectAs = (is_cf_date($field) ? 'date_picker_cvalue_' . $key : 'cvalue_' . $key);
     array_push($customFieldsColumns, $selectAs);
     array_push($aColumns, 'ctable_' . $key . '.value as ' . $selectAs);
-    array_push($join, 'LEFT JOIN ' . db_prefix() . 'customfieldsvalues as ctable_' . $key . ' ON ' . db_prefix() . 'inspectors.id = ctable_' . $key . '.relid AND ctable_' . $key . '.fieldto="' . $field['fieldto'] . '" AND ctable_' . $key . '.fieldid=' . $field['id']);
+    array_push($join, 'LEFT JOIN '.db_prefix().'customfieldsvalues as ctable_' . $key . ' ON '.db_prefix().'clients.userid = ctable_' . $key . '.relid AND ctable_' . $key . '.fieldto="' . $field['fieldto'] . '" AND ctable_' . $key . '.fieldid=' . $field['id']);
 }
 
-$where  = [];
-$filter = [];
+$join = hooks()->apply_filters('customers_table_sql_join', $join);
 
-if ($this->ci->input->post('not_sent')) {
-    array_push($filter, 'OR (sent= 0 AND ' . db_prefix() . 'inspectors.status NOT IN (2,3,4))');
-}
-if ($this->ci->input->post('invoiced')) {
-    array_push($filter, 'OR invoiceid IS NOT NULL');
-}
-
-if ($this->ci->input->post('not_invoiced')) {
-    array_push($filter, 'OR invoiceid IS NULL');
-}
-$statuses  = $this->ci->inspectors_model->get_statuses();
-$statusIds = [];
-foreach ($statuses as $status) {
-    if ($this->ci->input->post('inspectors_' . $status)) {
-        array_push($statusIds, $status);
+// Filter by custom groups
+$groups   = $this->ci->clients_model->get_groups();
+$groupIds = [];
+foreach ($groups as $group) {
+    if ($this->ci->input->post('customer_group_' . $group['id'])) {
+        array_push($groupIds, $group['id']);
     }
 }
-if (count($statusIds) > 0) {
-    array_push($filter, 'AND ' . db_prefix() . 'inspectors.status IN (' . implode(', ', $statusIds) . ')');
+if (count($groupIds) > 0) {
+    array_push($filter, 'AND '.db_prefix().'clients.userid IN (SELECT customer_id FROM '.db_prefix().'customer_groups WHERE groupid IN (' . implode(', ', $groupIds) . '))');
 }
 
-$agents    = $this->ci->inspectors_model->get_sale_agents();
-$agentsIds = [];
-foreach ($agents as $agent) {
-    if ($this->ci->input->post('sale_agent_' . $agent['sale_agent'])) {
-        array_push($agentsIds, $agent['sale_agent']);
+$countries  = $this->ci->clients_model->get_clients_distinct_countries();
+$countryIds = [];
+foreach ($countries as $country) {
+    if ($this->ci->input->post('country_' . $country['country_id'])) {
+        array_push($countryIds, $country['country_id']);
     }
 }
-if (count($agentsIds) > 0) {
-    array_push($filter, 'AND sale_agent IN (' . implode(', ', $agentsIds) . ')');
+if (count($countryIds) > 0) {
+    array_push($filter, 'AND country IN (' . implode(',', $countryIds) . ')');
 }
 
-$years      = $this->ci->inspectors_model->get_inspectors_years();
-$yearsArray = [];
-foreach ($years as $year) {
-    if ($this->ci->input->post('year_' . $year['year'])) {
-        array_push($yearsArray, $year['year']);
+
+$this->ci->load->model('invoices_model');
+// Filter by invoices
+$invoiceStatusIds = [];
+foreach ($this->ci->invoices_model->get_statuses() as $status) {
+    if ($this->ci->input->post('invoices_' . $status)) {
+        array_push($invoiceStatusIds, $status);
     }
 }
-if (count($yearsArray) > 0) {
-    array_push($filter, 'AND YEAR(date) IN (' . implode(', ', $yearsArray) . ')');
+if (count($invoiceStatusIds) > 0) {
+    array_push($filter, 'AND '.db_prefix().'clients.userid IN (SELECT clientid FROM '.db_prefix().'invoices WHERE status IN (' . implode(', ', $invoiceStatusIds) . '))');
+}
+
+// Filter by estimates
+$estimateStatusIds = [];
+$this->ci->load->model('estimates_model');
+foreach ($this->ci->estimates_model->get_statuses() as $status) {
+    if ($this->ci->input->post('estimates_' . $status)) {
+        array_push($estimateStatusIds, $status);
+    }
+}
+if (count($estimateStatusIds) > 0) {
+    array_push($filter, 'AND '.db_prefix().'clients.userid IN (SELECT clientid FROM '.db_prefix().'estimates WHERE status IN (' . implode(', ', $estimateStatusIds) . '))');
+}
+
+// Filter by projects
+$projectStatusIds = [];
+$this->ci->load->model('projects_model');
+foreach ($this->ci->projects_model->get_project_statuses() as $status) {
+    if ($this->ci->input->post('projects_' . $status['id'])) {
+        array_push($projectStatusIds, $status['id']);
+    }
+}
+if (count($projectStatusIds) > 0) {
+    array_push($filter, 'AND '.db_prefix().'clients.userid IN (SELECT clientid FROM '.db_prefix().'projects WHERE status IN (' . implode(', ', $projectStatusIds) . '))');
+}
+
+// Filter by proposals
+$proposalStatusIds = [];
+$this->ci->load->model('proposals_model');
+foreach ($this->ci->proposals_model->get_statuses() as $status) {
+    if ($this->ci->input->post('proposals_' . $status)) {
+        array_push($proposalStatusIds, $status);
+    }
+}
+if (count($proposalStatusIds) > 0) {
+    array_push($filter, 'AND '.db_prefix().'clients.userid IN (SELECT rel_id FROM '.db_prefix().'proposals WHERE status IN (' . implode(', ', $proposalStatusIds) . ') AND rel_type="customer")');
+}
+
+// Filter by having contracts by type
+$this->ci->load->model('contracts_model');
+$contractTypesIds = [];
+$contract_types   = $this->ci->contracts_model->get_contract_types();
+
+foreach ($contract_types as $type) {
+    if ($this->ci->input->post('contract_type_' . $type['id'])) {
+        array_push($contractTypesIds, $type['id']);
+    }
+}
+if (count($contractTypesIds) > 0) {
+    array_push($filter, 'AND '.db_prefix().'clients.userid IN (SELECT client FROM '.db_prefix().'contracts WHERE contract_type IN (' . implode(', ', $contractTypesIds) . '))');
+}
+
+// Filter by proposals
+$customAdminIds = [];
+foreach ($this->ci->clients_model->get_customers_admin_unique_ids() as $cadmin) {
+    if ($this->ci->input->post('responsible_admin_' . $cadmin['staff_id'])) {
+        array_push($customAdminIds, $cadmin['staff_id']);
+    }
+}
+
+if (count($customAdminIds) > 0) {
+    array_push($filter, 'AND '.db_prefix().'clients.userid IN (SELECT customer_id FROM '.db_prefix().'customer_admins WHERE staff_id IN (' . implode(', ', $customAdminIds) . '))');
+}
+
+if ($this->ci->input->post('requires_registration_confirmation')) {
+    array_push($filter, 'AND '.db_prefix().'clients.registration_confirmed=0');
 }
 
 if (count($filter) > 0) {
     array_push($where, 'AND (' . prepare_dt_filter($filter) . ')');
 }
 
-if (isset($clientid) && $clientid != '') {
-    array_push($where, 'AND ' . db_prefix() . 'inspectors.clientid=' . $this->ci->db->escape_str($clientid));
+if (!has_permission('pjk3', '', 'view')) {
+    array_push($where, 'AND '.db_prefix().'clients.userid IN (SELECT customer_id FROM '.db_prefix().'customer_admins WHERE staff_id=' . get_staff_user_id() . ')');
 }
 
-if ($project_id) {
-    array_push($where, 'AND project_id=' . $this->ci->db->escape_str($project_id));
+if ($this->ci->input->post('exclude_inactive')) {
+    array_push($where, 'AND ('.db_prefix().'clients.active = 1 OR '.db_prefix().'clients.active=0 AND registration_confirmed = 0)');
 }
 
-if (!has_permission('inspectors', '', 'view')) {
-    $userWhere = 'AND ' . get_inspectors_where_sql_for_staff(get_staff_user_id());
-    array_push($where, $userWhere);
+if ($this->ci->input->post('my_customers')) {
+    array_push($where, 'AND '.db_prefix().'clients.userid IN (SELECT customer_id FROM '.db_prefix().'customer_admins WHERE staff_id=' . get_staff_user_id() . ') ');
 }
 
-$aColumns = hooks()->apply_filters('inspectors_table_sql_columns', $aColumns);
+array_push($where, 'AND ('.db_prefix().'clients.is_pjk3 = '.$is_pjk3.') ');
+
+// print_r($is_pjk3); exit;
+
+$aColumns = hooks()->apply_filters('customers_table_sql_columns', $aColumns);
 
 // Fix for big queries. Some hosting have max_join_limit
 if (count($custom_fields) > 4) {
     @$this->ci->db->query('SET SQL_BIG_SELECTS=1');
 }
 
+// print_r($result);exit;
+
 $result = data_tables_init($aColumns, $sIndexColumn, $sTable, $join, $where, [
-    db_prefix() . 'inspectors.id',
-    db_prefix() . 'inspectors.clientid',
-    db_prefix() . 'inspectors.invoiceid',
-    db_prefix() . 'currencies.name as currency_name',
-    'project_id',
-    'deleted_customer_name',
-    'hash',
+    db_prefix().'contacts.id as contact_id',
+    'lastname',
+    db_prefix().'clients.zip as zip',
+    'registration_confirmed',
 ]);
 
 $output  = $result['output'];
@@ -122,53 +183,81 @@ $rResult = $result['rResult'];
 foreach ($rResult as $aRow) {
     $row = [];
 
-    $numberOutput = '';
-    // If is from client area table or projects area request
-    if ((isset($clientid) && is_numeric($clientid)) || $project_id) {
-        $numberOutput = '<a href="' . admin_url('inspectors/list_inspectors/' . $aRow['id']) . '" target="_blank">' . format_inspector_number($aRow['id']) . '</a>';
-    } else {
-        $numberOutput = '<a href="' . admin_url('inspectors/list_inspectors/' . $aRow['id']) . '" onclick="init_inspector(' . $aRow['id'] . '); return false;">' . format_inspector_number($aRow['id']) . '</a>';
+    // Bulk actions
+    $row[] = '<div class="checkbox"><input type="checkbox" value="' . $aRow['userid'] . '"><label></label></div>';
+    // User id
+    $row[] = $aRow['userid'];
+
+    // Company
+    $company  = $aRow['company'];
+    $isPerson = false;
+
+    if ($company == '') {
+        $company  = _l('no_company_view_profile');
+        $isPerson = true;
     }
 
-    $numberOutput .= '<div class="row-options">';
+    $url = admin_url('inspectors/list_inspectors/' . $aRow['userid']);
 
-    $numberOutput .= '<a href="' . site_url('inspector/' . $aRow['id'] . '/' . $aRow['hash']) . '" target="_blank">' . _l('view') . '</a>';
-    if (has_permission('inspectors', '', 'edit')) {
-        $numberOutput .= ' | <a href="' . admin_url('inspectors/inspector/' . $aRow['id']) . '">' . _l('edit') . '</a>';
-    }
-    $numberOutput .= '</div>';
-
-    $row[] = $numberOutput;
-
-    $amount = app_format_money($aRow['total'], $aRow['currency_name']);
-
-    if ($aRow['invoiceid']) {
-        $amount .= '<br /><span class="hide"> - </span><span class="text-success">' . _l('inspector_invoiced') . '</span>';
+    if ($isPerson && $aRow['contact_id']) {
+        $url .= '?contactid=' . $aRow['contact_id'];
     }
 
-    $row[] = $amount;
+    $company = '<a href="' . $url . '">' . $company . '</a>';
 
-    $row[] = app_format_money($aRow['total_tax'], $aRow['currency_name']);
+    $company .= '<div class="row-options">';
+    $company .= '<a href="' . $url . '">' . _l('view') . '</a>';
 
-    $row[] = $aRow['year'];
-
-    if (empty($aRow['deleted_customer_name'])) {
-        $row[] = '<a href="' . admin_url('clients/client/' . $aRow['clientid']) . '">' . $aRow['company'] . '</a>';
-    } else {
-        $row[] = $aRow['deleted_customer_name'];
+    if ($aRow['registration_confirmed'] == 0 && is_admin()) {
+        $company .= ' | <a href="' . admin_url('pjk3/confirm_registration/' . $aRow['userid']) . '" class="text-success bold">' . _l('confirm_registration') . '</a>';
+    }
+    if (!$isPerson) {
+        $company .= ' | <a href="' . admin_url('pjk3/client/' . $aRow['userid'] . '?group=contacts') . '">' . _l('customer_contacts') . '</a>';
+    }
+    if ($hasPermissionDelete) {
+        $company .= ' | <a href="' . admin_url('pjk3/delete/' . $aRow['userid']) . '" class="text-danger _delete">' . _l('delete') . '</a>';
     }
 
-    $row[] = '<a href="' . admin_url('projects/view/' . $aRow['project_id']) . '">' . $aRow['project_name'] . '</a>';
+    $company .= '</div>';
 
-    $row[] = render_tags($aRow['tags']);
+    $row[] = $company;
 
-    $row[] = _d($aRow['date']);
+    // Primary contact
+    $row[] = ($aRow['contact_id'] ? '<a href="' . admin_url('pjk3/client/' . $aRow['userid'] . '?contactid=' . $aRow['contact_id']) . '" target="_blank">' . $aRow['firstname'] . ' ' . $aRow['lastname'] . '</a>' : '');
 
-    $row[] = _d($aRow['expirydate']);
+    // Primary contact email
+    $row[] = ($aRow['email'] ? '<a href="mailto:' . $aRow['email'] . '">' . $aRow['email'] . '</a>' : '');
 
-    $row[] = $aRow['reference_no'];
+    // Primary contact phone
+    $row[] = ($aRow['siup'] ? $aRow['siup'] : '');
 
-    $row[] = format_inspector_status($aRow[db_prefix() . 'inspectors.status']);
+    // Primary contact phone
+    $row[] = ($aRow['phonenumber'] ? '<a href="tel:' . $aRow['phonenumber'] . '">' . $aRow['phonenumber'] . '</a>' : '');
+
+    // Toggle active/inactive customer
+    $toggleActive = '<div class="onoffswitch" data-toggle="tooltip" data-title="' . _l('customer_active_inactive_help') . '">
+    <input type="checkbox"' . ($aRow['registration_confirmed'] == 0 ? ' disabled' : '') . ' data-switch-url="' . admin_url() . 'pjk3/change_client_status" name="onoffswitch" class="onoffswitch-checkbox" id="' . $aRow['userid'] . '" data-id="' . $aRow['userid'] . '" ' . ($aRow[db_prefix().'clients.active'] == 1 ? 'checked' : '') . '>
+    <label class="onoffswitch-label" for="' . $aRow['userid'] . '"></label>
+    </div>';
+
+    // For exporting
+    $toggleActive .= '<span class="hide">' . ($aRow[db_prefix().'clients.active'] == 1 ? _l('is_active_export') : _l('is_not_active_export')) . '</span>';
+
+
+    $row[] = $toggleActive;
+     $toggle_pre_pjk3 = '<div class="onoffswitch custom_toggle"><label class="toggleSwitch" onclick="">
+        <input type="checkbox" data-switch-url="' . admin_url() . 'pjk3/change_pjk3_preference" name="onoffswitch" class="onoffswitch-checkbox" id="' . $aRow['userid'] . '" data-id="' . $aRow['userid'] . '" ' . ($aRow['is_preffered'] == 1 ? 'checked' : '') . '>
+        <span>
+            <span></span>
+            <span></span>
+            
+        </span>
+        <a></a>
+    </label></div>';
+
+    // For exporting
+    $toggle_pre_pjk3 .= '<span class="hide">' . ($aRow['is_preffered'] == 1 ? _l('is_active_export') : _l('is_not_active_export')) . '</span>';
+    $row[] = $toggle_pre_pjk3;
 
     // Custom fields add values
     foreach ($customFieldsColumns as $customFieldColumn) {
@@ -177,10 +266,13 @@ foreach ($rResult as $aRow) {
 
     $row['DT_RowClass'] = 'has-row-options';
 
-    $row = hooks()->apply_filters('inspectors_table_row_data', $row, $aRow);
+    if ($aRow['registration_confirmed'] == 0) {
+        $row['DT_RowClass'] .= ' alert-info requires-confirmation';
+        $row['Data_Title']  = _l('customer_requires_registration_confirmation');
+        $row['Data_Toggle'] = 'tooltip';
+    }
+
+    $row = hooks()->apply_filters('customers_table_row_data', $row, $aRow);
 
     $output['aaData'][] = $row;
 }
-
-echo json_encode($output);
-die();

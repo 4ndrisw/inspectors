@@ -5,7 +5,8 @@ use app\services\inspectors\InspectorsPipeline;
 
 defined('BASEPATH') or exit('No direct script access allowed');
 
-class Inspectors_model extends App_Model
+//class Inspectors_model extends App_Model
+class Inspectors_model extends Clients_Model
 {
     private $statuses;
 
@@ -39,7 +40,7 @@ class Inspectors_model extends App_Model
      * @param array $where perform where
      * @return mixed
      */
-    public function get($id = '', $where = [])
+    public function _get($id = '', $where = [])
     {
         $this->db->select('*,' . db_prefix() . 'currencies.id as currencyid, ' . db_prefix() . 'inspectors.id as id, ' . db_prefix() . 'currencies.name as currency_name');
         $this->db->from(db_prefix() . 'inspectors');
@@ -83,6 +84,43 @@ class Inspectors_model extends App_Model
         $this->db->order_by('number,YEAR(date)', 'desc');
 
         return $this->db->get()->result_array();
+    }
+
+
+    /**
+     * Get client object based on passed clientid if not passed clientid return array of all clients
+     * @param  mixed $id    client id
+     * @param  array  $where
+     * @return mixed
+     */
+    public function get($id = '', $where = [])
+    {
+        $this->db->select(implode(',', prefixed_table_fields_array(db_prefix() . 'clients')) . ',' . get_sql_select_client_company());
+
+        $this->db->join(db_prefix() . 'countries', '' . db_prefix() . 'countries.country_id = ' . db_prefix() . 'clients.country', 'left');
+        $this->db->join(db_prefix() . 'contacts', '' . db_prefix() . 'contacts.userid = ' . db_prefix() . 'clients.userid AND is_primary = 1', 'left');
+
+        if ((is_array($where) && count($where) > 0) || (is_string($where) && $where != '')) {
+            $this->db->where($where);
+        }
+
+        if (is_numeric($id)) {
+
+            $this->db->where(db_prefix() . 'clients.userid', $id);
+            $client = $this->db->get(db_prefix() . 'clients')->row();
+
+            if ($client && get_option('company_requires_vat_number_field') == 0) {
+                $client->vat = null;
+            }
+
+            $GLOBALS['client'] = $client;
+
+            return $client;
+        }
+
+        $this->db->order_by('company', 'asc');
+
+        return $this->db->get(db_prefix() . 'clients')->result_array();
     }
 
     /**
@@ -465,7 +503,7 @@ class Inspectors_model extends App_Model
      * @param array $data invoiec data
      * @return mixed - false if not insert, inspector ID if succes
      */
-    public function add($data)
+    public function _add($data)
     {
         $data['datecreated'] = date('Y-m-d H:i:s');
 
@@ -561,6 +599,116 @@ class Inspectors_model extends App_Model
     }
 
     /**
+     * @param array $_POST data
+     * @param client_request is this request from the customer area
+     * @return integer Insert ID
+     * Add new client to database
+     */
+    public function add($data, $client_or_lead_convert_request = false)
+    {
+        $contact_data = [];
+        foreach ($this->contact_columns as $field) {
+            if (isset($data[$field])) {
+                $contact_data[$field] = $data[$field];
+                // Phonenumber is also used for the company profile
+                if ($field != 'phonenumber') {
+                    unset($data[$field]);
+                }
+            }
+        }
+
+        // From customer profile register
+        if (isset($data['contact_phonenumber'])) {
+            $contact_data['phonenumber'] = $data['contact_phonenumber'];
+            unset($data['contact_phonenumber']);
+        }
+
+        if (isset($data['custom_fields'])) {
+            $custom_fields = $data['custom_fields'];
+            unset($data['custom_fields']);
+        }
+
+        if (isset($data['groups_in'])) {
+            $groups_in = $data['groups_in'];
+            unset($data['groups_in']);
+        }
+    
+        unset($data['itemid']);
+        unset($data['description']);
+        unset($data['long_description']);
+        unset($data['rate']);
+        unset($data['rate_currency_2']);
+        unset($data['tax']);
+        unset($data['unit']);
+        unset($data['group_id']);
+        unset($data['userid']);
+        unset($data['DataTables_Table_2_length']);
+        $data = $this->check_zero_columns($data);
+
+        $data['datecreated'] = date('Y-m-d H:i:s');
+
+        if (is_staff_logged_in()) {
+            $data['addedfrom'] = get_staff_user_id();
+        }
+
+        // New filter action
+        $data = hooks()->apply_filters('before_client_added', $data);
+
+        $this->db->insert(db_prefix() . 'clients', $data);
+
+        $userid = $this->db->insert_id();
+        if ($userid) {
+            if (isset($custom_fields)) {
+                $_custom_fields = $custom_fields;
+                // Possible request from the register area with 2 types of custom fields for contact and for comapny/customer
+                if (count($custom_fields) == 2) {
+                    unset($custom_fields);
+                    $custom_fields['customers']                = $_custom_fields['customers'];
+                    $contact_data['custom_fields']['contacts'] = $_custom_fields['contacts'];
+                } elseif (count($custom_fields) == 1) {
+                    if (isset($_custom_fields['contacts'])) {
+                        $contact_data['custom_fields']['contacts'] = $_custom_fields['contacts'];
+                        unset($custom_fields);
+                    }
+                }
+                handle_custom_fields_post($userid, $custom_fields);
+            }
+            /**
+             * Used in Import, Lead Convert, Register
+             */
+            if ($client_or_lead_convert_request == true) {
+                $contact_id = $this->add_contact($contact_data, $userid, $client_or_lead_convert_request);
+            }
+            if (isset($groups_in)) {
+                foreach ($groups_in as $group) {
+                    $this->db->insert(db_prefix() . 'customer_groups', [
+                        'customer_id' => $userid,
+                        'groupid'     => $group,
+                    ]);
+                }
+            }
+
+            $log = 'ID: ' . $userid;
+
+            if ($log == '' && isset($contact_id)) {
+                $log = get_contact_full_name($contact_id);
+            }
+
+            $isStaff = null;
+            if (!is_client_logged_in() && is_staff_logged_in()) {
+                $log .= ', From Staff: ' . get_staff_user_id();
+                $isStaff = get_staff_user_id();
+            }
+
+            hooks()->do_action('after_client_added', $userid);
+
+            log_activity('New Client Created [' . $log . ']', $isStaff);
+        }
+
+        return $userid;
+    }
+
+    /**
      * Get item by id
      * @param mixed $id item id
      * @return object
@@ -578,7 +726,7 @@ class Inspectors_model extends App_Model
      * @param mixed $id inspectorid
      * @return boolean
      */
-    public function update($data, $id)
+    public function __update($data, $id)
     {
         $affectedRows = 0;
 
@@ -782,6 +930,118 @@ class Inspectors_model extends App_Model
 
         return false;
     }
+
+
+    /**
+     * @param  array $_POST data
+     * @param  integer ID
+     * @return boolean
+     * Update client informations
+     */
+    public function update($data, $id, $client_request = false)
+    {
+        if (isset($data['update_all_other_transactions'])) {
+            $update_all_other_transactions = true;
+            unset($data['update_all_other_transactions']);
+        }
+
+        if (isset($data['update_credit_notes'])) {
+            $update_credit_notes = true;
+            unset($data['update_credit_notes']);
+        }
+
+        $affectedRows = 0;
+        if (isset($data['custom_fields'])) {
+            $custom_fields = $data['custom_fields'];
+            if (handle_custom_fields_post($id, $custom_fields)) {
+                $affectedRows++;
+            }
+            unset($data['custom_fields']);
+        }
+
+        if (isset($data['groups_in'])) {
+            $groups_in = $data['groups_in'];
+            unset($data['groups_in']);
+        }
+        unset($data['itemid']);
+        unset($data['description']);
+        unset($data['long_description']);
+        unset($data['rate']);
+        unset($data['rate_currency_2']);
+        unset($data['tax']);
+        unset($data['unit']);
+        unset($data['group_id']);
+        unset($data['userid']);
+        unset($data['DataTables_Table_2_length']);
+        $data = $this->check_zero_columns($data);
+
+        $data = hooks()->apply_filters('before_client_updated', $data, $id);
+
+        $this->db->where('userid', $id);
+        $this->db->update(db_prefix() . 'clients', $data);
+
+        if ($this->db->affected_rows() > 0) {
+            $affectedRows++;
+        }
+
+        if (isset($update_all_other_transactions) || isset($update_credit_notes)) {
+            $transactions_update = [
+                    'billing_street'   => $data['billing_street'],
+                    'billing_city'     => $data['billing_city'],
+                    'billing_state'    => $data['billing_state'],
+                    'billing_zip'      => $data['billing_zip'],
+                    'billing_country'  => $data['billing_country'],
+                    'shipping_street'  => $data['shipping_street'],
+                    'shipping_city'    => $data['shipping_city'],
+                    'shipping_state'   => $data['shipping_state'],
+                    'shipping_zip'     => $data['shipping_zip'],
+                    'shipping_country' => $data['shipping_country'],
+                ];
+            if (isset($update_all_other_transactions)) {
+
+                // Update all invoices except paid ones.
+                $this->db->where('clientid', $id);
+                $this->db->where('status !=', 2);
+                $this->db->update(db_prefix() . 'invoices', $transactions_update);
+                if ($this->db->affected_rows() > 0) {
+                    $affectedRows++;
+                }
+
+                // Update all estimates
+                $this->db->where('clientid', $id);
+                $this->db->update(db_prefix() . 'estimates', $transactions_update);
+                if ($this->db->affected_rows() > 0) {
+                    $affectedRows++;
+                }
+            }
+            if (isset($update_credit_notes)) {
+                $this->db->where('clientid', $id);
+                $this->db->where('status !=', 2);
+                $this->db->update(db_prefix() . 'creditnotes', $transactions_update);
+                if ($this->db->affected_rows() > 0) {
+                    $affectedRows++;
+                }
+            }
+        }
+
+        if (!isset($groups_in)) {
+            $groups_in = false;
+        }
+
+        if ($this->client_groups_model->sync_customer_groups($id, $groups_in)) {
+            $affectedRows++;
+        }
+
+        if ($affectedRows > 0) {
+            hooks()->do_action('after_client_updated', $id);
+
+            log_activity('Customer Info Updated [ID: ' . $id . ']');
+
+            return true;
+        }
+
+        return false;
+    }    
 
     public function mark_action_status($action, $id, $client = false)
     {
