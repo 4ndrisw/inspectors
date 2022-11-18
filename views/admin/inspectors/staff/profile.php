@@ -1,5 +1,7 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
-
+<?php init_head(); ?>
+<div id="wrapper">
+    <div class="content">
         <div class="row">
             <div class="col-md-7">
                 <h4 class="tw-mt-0 tw-font-semibold tw-text-lg tw-text-neutral-700">
@@ -66,10 +68,10 @@
                                             $selected = 'selected';
                                         }
                                     } ?>
-                                    <option value="<?php echo $availableLanguage; ?>" <?php echo $selected; ?>>
-                                        <?php echo ucfirst($availableLanguage); ?></option>
-                                    <?php
-                                } ?>
+                                <option value="<?php echo $availableLanguage; ?>" <?php echo $selected; ?>>
+                                    <?php echo ucfirst($availableLanguage); ?></option>
+                                        <?php
+                                      } ?>
                             </select>
                         </div>
                         <?php } ?>
@@ -79,36 +81,36 @@
                                 data-none-selected-text="<?php echo _l('system_default_string'); ?>" data-width="100%"
                                 name="direction" id="direction">
                                 <option value="" <?php if (isset($member) && empty($member->direction)) {
-                                    echo 'selected';
-                                } ?>></option>
+                                        echo 'selected';
+                                    } ?>></option>
                                 <option value="ltr" <?php if (isset($member) && $member->direction == 'ltr') {
-                                    echo 'selected';
-                                } ?>>LTR</option>
+                                        echo 'selected';
+                                    } ?>>LTR</option>
                                 <option value="rtl" <?php if (isset($member) && $member->direction == 'rtl') {
-                                    echo 'selected';
-                                } ?>>RTL</option>
-                                                        </select>
+                                        echo 'selected';
+                                    } ?>>RTL</option>
+                            </select>
                         </div>
                         <div class="form-group">
-                            <label for="facebook" class="control-label"><i class="fa-brands fa-facebook-f"></i>
+                                    <label for="facebook" class="control-label"><i class="fa-brands fa-facebook-f"></i>
                                 <?php echo _l('staff_add_edit_facebook'); ?></label>
-                            <input type="text" class="form-control" name="facebook" value="<?php if (isset($member)) {
-                                echo $member->facebook;
-                            } ?>">
+                                    <input type="text" class="form-control" name="facebook" value="<?php if (isset($member)) {
+                                    echo $member->facebook;
+                                } ?>">
                         </div>
                         <div class="form-group">
                             <label for="linkedin" class="control-label"><i class="fa-brands fa-linkedin-in"></i>
                                 <?php echo _l('staff_add_edit_linkedin'); ?></label>
                             <input type="text" class="form-control" name="linkedin" value="<?php if (isset($member)) {
-                                    echo $member->linkedin;
-                                } ?>">
+        echo $member->linkedin;
+    } ?>">
                         </div>
                         <div class="form-group">
                             <label for="skype" class="control-label"><i class="fa-brands fa-skype"></i>
                                 <?php echo _l('staff_add_edit_skype'); ?></label>
                             <input type="text" class="form-control" name="skype" value="<?php if (isset($member)) {
-                                echo $member->skype;
-                            } ?>">
+        echo $member->skype;
+    } ?>">
                         </div>
                         <i class="fa-regular fa-circle-question" data-toggle="tooltip"
                             data-title="<?php echo _l('staff_email_signature_help'); ?>"></i>
@@ -119,15 +121,15 @@
                             <label for="departments"><?php echo _l('staff_edit_profile_your_departments'); ?></label>
                             <div class="clearfix"></div>
                             <?php
-                            foreach ($departments as $department) { ?>
-                                <?php
-                                foreach ($staff_departments as $staff_department) {
-                                    if ($staff_department['departmentid'] == $department['departmentid']) { ?>
-                                        <div class="label label-primary"><?php echo $staff_department['name']; ?></div>
-                                        <?php }
-                                }
+                    foreach ($departments as $department) { ?>
+                            <?php
+                    foreach ($staff_departments as $staff_department) {
+                        if ($staff_department['departmentid'] == $department['departmentid']) { ?>
+                            <div class="label label-primary"><?php echo $staff_department['name']; ?></div>
+                            <?php }
+                    }
 
-                            ?>
+                 ?>
                             <?php } ?>
                         </div>
                         <?php } ?>
@@ -229,6 +231,7 @@
                 <?php echo form_close(); ?>
             </div>
         </div>
+    </div>
     <?php init_tail(); ?>
     <script>
     $(function() {
@@ -272,3 +275,6 @@
         });
     });
     </script>
+    </body>
+
+    </html>

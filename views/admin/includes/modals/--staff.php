@@ -10,7 +10,7 @@
       <div class="modal-body">
         <div class="row">
           <div class="col-md-12">
-            <?php //$this->load->view('admin/includes/profile'); ?>
+            <?php $this->load->view('admin/includes/profile', $member); ?>
           </div>
         </div>
       </div>

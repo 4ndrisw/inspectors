@@ -238,7 +238,14 @@
                <?php init_relation_tasks_table(array('data-new-rel-id'=>$inspector->userid,'data-new-rel-type'=>'inspector')); ?>
             </div>
             <div role="tabpanel" class="tab-pane" id="tab_staffs">
-               <a href="#" data-toggle="modal" class="btn btn-info" data-target=".staff-modal-inspector-<?php echo $inspector->userid; ?>"><i class="fa fa-bell-o"></i> <?php echo _l('inspector_set_staff_title'); ?></a>
+                <?php if (has_permission('staff', '', 'create')) { ?>
+                <div class="tw-mb-2 sm:tw-mb-4">
+                    <a href="<?php echo admin_url('inspectors/staff/member'); ?>" class="btn btn-primary">
+                        <i class="fa-regular fa-plus tw-mr-1"></i>
+                        <?php echo _l('new_staff'); ?>
+                    </a>
+                </div>
+                <?php } ?>
                <hr />
                <?php 
                //render_datatable(array( _l( 'staff_description'), _l( 'staff_date'), _l( 'staff_staff'), _l( 'staff_is_notified')), 'staffs'); 
@@ -251,10 +258,8 @@
                             _l('staff_dt_active'),
                         ];
                         render_datatable($table_data, 'staffs');
-
-
                ?>
-               <?php $this->load->view('admin/includes/modals/staff',array('id'=>$inspector->userid,'name'=>'inspector','members'=>isset($members) ? $members : [],'staff_title'=>_l('inspector_set_staff_title'))); ?>
+               <?php //$this->load->view('admin/includes/modals/staff',array('id'=>$inspector->userid,'name'=>'inspector','member'=>$member,'staff_title'=>_l('inspector_set_staff_title'))); ?>
             </div>
             <div role="tabpanel" class="tab-pane" id="tab_reminders">
                <a href="#" data-toggle="modal" class="btn btn-info" data-target=".reminder-modal-inspector-<?php echo $inspector->userid; ?>"><i class="fa fa-bell-o"></i> <?php echo _l('inspector_set_reminder_title'); ?></a>

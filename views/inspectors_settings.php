@@ -33,6 +33,8 @@
       <hr />
       <?php render_yes_no_option('show_project_on_inspector','show_project_on_inspector'); ?>
       <hr />
+      <?php echo render_select('settings[default_inspector_role]', $roles, ['roleid', 'name'], 'settings_general_default_inspector_role', get_option('default_inspector_role'), [], ['data-toggle' => 'tooltip', 'title' => 'settings_general_default_inspector_role_tooltip']); ?>
+      <hr />
 
       <?php
       $staff = $this->staff_model->get('', ['active' => 1]);

@@ -19,8 +19,10 @@ $sTable       = db_prefix() . 'staff';
 $join         = ['LEFT JOIN ' . db_prefix() . 'roles ON ' . db_prefix() . 'roles.roleid = ' . db_prefix() . 'staff.role'];
 $i            = 0;
             // Fix for big queries. Some hosting have max_join_limit
+//$where = ['client_id' => $inspector->userid];
+$where = ['AND client_id=' . $this->ci->db->escape_str($client_id)];
 
-$where = hooks()->apply_filters('pengguna_staff_table_sql_where', []);
+//$where = hooks()->apply_filters('inspectors_staff_table_sql_where', []);
 
 $result = data_tables_init($aColumns, $sIndexColumn, $sTable, $join, $where, [
     'profile_image',
@@ -59,13 +61,13 @@ foreach ($rResult as $aRow) {
             // For exporting
             $_data .= '<span class="hide">' . ($checked == 'checked' ? _l('is_active_export') : _l('is_not_active_export')) . '</span>';
         } elseif ($aColumns[$i] == 'firstname') {
-            $_data = '<a href="' . admin_url('pengguna/staff/profile/' . $aRow['staffid']) . '">' . staff_profile_image($aRow['staffid'], [
+            $_data = '<a href="' . admin_url('inspectors/staff/profile/' . $aRow['staffid']) . '">' . staff_profile_image($aRow['staffid'], [
                 'staff-profile-image-small',
                 ]) . '</a>';
-            $_data .= ' <a href="' . admin_url('pengguna/staff/member/' . $aRow['staffid']) . '">' . $aRow['firstname'] . ' ' . $aRow['lastname'] . '</a>';
+            $_data .= ' <a href="' . admin_url('inspectors/staff/member/' . $aRow['staffid']) . '">' . $aRow['firstname'] . ' ' . $aRow['lastname'] . '</a>';
 
             $_data .= '<div class="row-options">';
-            $_data .= '<a href="' . admin_url('pengguna/staff/member/' . $aRow['staffid']) . '">' . _l('view') . '</a>';
+            $_data .= '<a href="' . admin_url('inspectors/staff/member/' . $aRow['staffid']) . '">' . _l('view') . '</a>';
 
             if (($has_permission_delete && ($has_permission_delete && !is_admin($aRow['staffid']))) || is_admin()) {
                 if ($has_permission_delete && $output['iTotalRecords'] > 1 && $aRow['staffid'] != get_staff_user_id()) {
@@ -86,7 +88,7 @@ foreach ($rResult as $aRow) {
 
     $row['DT_RowClass'] = 'has-row-options';
 
-    $row = hooks()->apply_filters('pengguna_staff_table_row', $row, $aRow);
+    $row = hooks()->apply_filters('inspectors_staff_table_row', $row, $aRow);
 
     $output['aaData'][] = $row;
 }

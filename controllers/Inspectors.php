@@ -11,6 +11,7 @@ class Inspectors extends AdminController
         parent::__construct();
         $this->load->model('inspectors_model');
         $this->load->model('clients_model');
+        $this->load->model('staff_model');
     }
 
     /* Get all inspectors in case user go on index page */
@@ -47,7 +48,7 @@ class Inspectors extends AdminController
             if ($this->input->get('status') || $this->input->get('filter') && $isPipeline) {
                 $this->pipeline(0, true);
             }
-
+            
             $data['inspectorid']            = $id;
             $data['switch_pipeline']       = true;
             $data['title']                 = _l('inspectors');
@@ -65,13 +66,13 @@ class Inspectors extends AdminController
         }
     }
 
-    public function table($clientid = '')
+    public function table($client_id = '')
     {
         if (!has_permission('inspectors', '', 'view') && !has_permission('inspectors', '', 'view_own') && get_option('allow_staff_view_inspectors_assigned') == '0') {
             ajax_access_denied();
         }
         $this->app->get_table_data(module_views_path('inspectors', 'admin/tables/table',[
-            'clientid' => $clientid,
+            'client_id' => $client_id,
         ]));
     }
 
@@ -162,7 +163,6 @@ class Inspectors extends AdminController
         }
         $data['items_groups'] = $this->invoice_items_model->get_groups();
 
-        $data['staff']             = $this->staff_model->get('', ['active' => 1]);
         $data['inspector_statuses'] = $this->inspectors_model->get_statuses();
         $data['title']             = $title;
 //        $this->load->view(module_views_path('inspectors','admin/inspectors/inspector'), $data);
@@ -264,10 +264,10 @@ class Inspectors extends AdminController
 //        }
 
 //        $data = prepare_mail_preview_data($template_name, $inspector->clientid);
-
+        $data['title'] = 'Form add / Edit Staff';
         $data['activity']          = $this->inspectors_model->get_inspector_activity($id);
         $data['inspector']          = $inspector;
-//        $data['members']           = $this->staff_model->get('', ['active' => 1]);
+        $data['member']           = $this->staff_model->get('', ['active' => 1, 'client_id'=>$id]);
         $data['inspector_statuses'] = $this->inspectors_model->get_statuses();
         $data['totalNotes']        = total_rows(db_prefix() . 'notes', ['rel_id' => $id, 'rel_type' => 'inspector']);
 
@@ -644,7 +644,7 @@ class Inspectors extends AdminController
         $this->app->get_table_data(module_views_path('inspectors', 'admin/tables/staff'));
     }
 */
-    public function table_staffs($userid,$inspector = true)
+    public function table_staffs($client_id,$inspector = true)
     {
         if (
             !has_permission('inspectors', '', 'view')
@@ -653,7 +653,7 @@ class Inspectors extends AdminController
         ) {
             ajax_access_denied();
         }
-        $this->app->get_table_data(module_views_path('inspectors', 'admin/tables/staff'));
+        $this->app->get_table_data(module_views_path('inspectors', 'admin/tables/staff'), array('client_id'=>$client_id));
     }
 
 
