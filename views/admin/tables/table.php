@@ -1,7 +1,7 @@
 <?php
 
 defined('BASEPATH') or exit('No direct script access allowed');
-$is_pjk3=0;
+$is_pjk3=1;
 
 $hasPermissionDelete = has_permission('customers', '', 'delete');
 
@@ -47,6 +47,7 @@ foreach ($groups as $group) {
         array_push($groupIds, $group['id']);
     }
 }
+
 if (count($groupIds) > 0) {
     array_push($filter, 'AND '.db_prefix().'clients.userid IN (SELECT customer_id FROM '.db_prefix().'customer_groups WHERE groupid IN (' . implode(', ', $groupIds) . '))');
 }
@@ -63,30 +64,6 @@ if (count($countryIds) > 0) {
 }
 
 
-$this->ci->load->model('invoices_model');
-// Filter by invoices
-$invoiceStatusIds = [];
-foreach ($this->ci->invoices_model->get_statuses() as $status) {
-    if ($this->ci->input->post('invoices_' . $status)) {
-        array_push($invoiceStatusIds, $status);
-    }
-}
-if (count($invoiceStatusIds) > 0) {
-    array_push($filter, 'AND '.db_prefix().'clients.userid IN (SELECT clientid FROM '.db_prefix().'invoices WHERE status IN (' . implode(', ', $invoiceStatusIds) . '))');
-}
-
-// Filter by estimates
-$estimateStatusIds = [];
-$this->ci->load->model('estimates_model');
-foreach ($this->ci->estimates_model->get_statuses() as $status) {
-    if ($this->ci->input->post('estimates_' . $status)) {
-        array_push($estimateStatusIds, $status);
-    }
-}
-if (count($estimateStatusIds) > 0) {
-    array_push($filter, 'AND '.db_prefix().'clients.userid IN (SELECT clientid FROM '.db_prefix().'estimates WHERE status IN (' . implode(', ', $estimateStatusIds) . '))');
-}
-
 // Filter by projects
 $projectStatusIds = [];
 $this->ci->load->model('projects_model');
@@ -99,31 +76,6 @@ if (count($projectStatusIds) > 0) {
     array_push($filter, 'AND '.db_prefix().'clients.userid IN (SELECT clientid FROM '.db_prefix().'projects WHERE status IN (' . implode(', ', $projectStatusIds) . '))');
 }
 
-// Filter by proposals
-$proposalStatusIds = [];
-$this->ci->load->model('proposals_model');
-foreach ($this->ci->proposals_model->get_statuses() as $status) {
-    if ($this->ci->input->post('proposals_' . $status)) {
-        array_push($proposalStatusIds, $status);
-    }
-}
-if (count($proposalStatusIds) > 0) {
-    array_push($filter, 'AND '.db_prefix().'clients.userid IN (SELECT rel_id FROM '.db_prefix().'proposals WHERE status IN (' . implode(', ', $proposalStatusIds) . ') AND rel_type="customer")');
-}
-
-// Filter by having contracts by type
-$this->ci->load->model('contracts_model');
-$contractTypesIds = [];
-$contract_types   = $this->ci->contracts_model->get_contract_types();
-
-foreach ($contract_types as $type) {
-    if ($this->ci->input->post('contract_type_' . $type['id'])) {
-        array_push($contractTypesIds, $type['id']);
-    }
-}
-if (count($contractTypesIds) > 0) {
-    array_push($filter, 'AND '.db_prefix().'clients.userid IN (SELECT client FROM '.db_prefix().'contracts WHERE contract_type IN (' . implode(', ', $contractTypesIds) . '))');
-}
 
 // Filter by proposals
 $customAdminIds = [];
@@ -145,7 +97,7 @@ if (count($filter) > 0) {
     array_push($where, 'AND (' . prepare_dt_filter($filter) . ')');
 }
 
-if (!has_permission('pjk3', '', 'view')) {
+if (!has_permission('inspectors', '', 'view')) {
     array_push($where, 'AND '.db_prefix().'clients.userid IN (SELECT customer_id FROM '.db_prefix().'customer_admins WHERE staff_id=' . get_staff_user_id() . ')');
 }
 

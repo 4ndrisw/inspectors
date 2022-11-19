@@ -149,6 +149,8 @@ $lang['inspector_activity_updated_qty_item']               = 'updated quantity o
 $lang['inspector_activity_added_item']                     = 'added new item <b>%s</b>';
 $lang['inspector_activity_sent_to_client']                 = 'sent inspector to client';
 
+$lang['inspector_staffs']                        	= 'Saffs';
+$lang['inspector_staff']                        	= 'Saff';
 
 /*
 

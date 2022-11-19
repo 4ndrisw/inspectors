@@ -92,6 +92,7 @@ class Inspectors extends AdminController
                 if (!has_permission('inspectors', '', 'create')) {
                     access_denied('inspectors');
                 }
+                $inspector_data['is_pjk3'] = '1';
                 $id = $this->inspectors_model->add($inspector_data);
 
                 if ($id) {
@@ -137,35 +138,8 @@ class Inspectors extends AdminController
             $title            = _l('edit', _l('inspector_lowercase'));
         }
 
-        if ($this->input->get('customer_id')) {
-            $data['customer_id'] = $this->input->get('customer_id');
-        }
-
-        if ($this->input->get('inspector_request_id')) {
-            $data['inspector_request_id'] = $this->input->get('inspector_request_id');
-        }
-
-        $this->load->model('taxes_model');
-        $data['taxes'] = $this->taxes_model->get();
-        $this->load->model('currencies_model');
-        $data['currencies'] = $this->currencies_model->get();
-
-        $data['base_currency'] = $this->currencies_model->get_base_currency();
-
-        $this->load->model('invoice_items_model');
-
-        $data['ajaxItems'] = false;
-        if (total_rows(db_prefix() . 'items') <= ajax_on_total_items()) {
-            $data['items'] = $this->invoice_items_model->get_grouped();
-        } else {
-            $data['items']     = [];
-            $data['ajaxItems'] = true;
-        }
-        $data['items_groups'] = $this->invoice_items_model->get_groups();
-
         $data['inspector_statuses'] = $this->inspectors_model->get_statuses();
         $data['title']             = $title;
-//        $this->load->view(module_views_path('inspectors','admin/inspectors/inspector'), $data);
         $this->load->view('admin/inspectors/inspector', $data);
     }
     
@@ -256,14 +230,7 @@ class Inspectors extends AdminController
             die;
         }
 
-//        $inspector->date       = _d($inspector->date);
-//        $inspector->expirydate = _d($inspector->expirydate);
-//        if ($inspector->invoiceid !== null) {
-//            $this->load->model('invoices_model');
-//            $inspector->invoice = $this->invoices_model->get($inspector->invoiceid);
-//        }
-
-//        $data = prepare_mail_preview_data($template_name, $inspector->clientid);
+        // $data = prepare_mail_preview_data($template_name, $inspector->clientid);
         $data['title'] = 'Form add / Edit Staff';
         $data['activity']          = $this->inspectors_model->get_inspector_activity($id);
         $data['inspector']          = $inspector;

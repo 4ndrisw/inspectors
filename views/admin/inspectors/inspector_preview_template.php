@@ -240,7 +240,7 @@
             <div role="tabpanel" class="tab-pane" id="tab_staffs">
                 <?php if (has_permission('staff', '', 'create')) { ?>
                 <div class="tw-mb-2 sm:tw-mb-4">
-                    <a href="<?php echo admin_url('inspectors/staff/member'); ?>" class="btn btn-primary">
+                    <a href="<?php echo admin_url('inspectors/staff/add/'. $inspector->userid); ?>" class="btn btn-primary">
                         <i class="fa-regular fa-plus tw-mr-1"></i>
                         <?php echo _l('new_staff'); ?>
                     </a>
@@ -253,7 +253,6 @@
                         $table_data = [
                             _l('staff_dt_name'),
                             _l('staff_dt_email'),
-                            _l('role'),
                             _l('staff_dt_last_Login'),
                             _l('staff_dt_active'),
                         ];

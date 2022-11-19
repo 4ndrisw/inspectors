@@ -18,15 +18,55 @@ class Staff extends AdminController
         $this->load->view('admin/inspectors/manage', $data);
     }
 
+
     /* Add new staff member or edit existing */
-    public function member($id = '')
+    public function add($client_id)
     {
         if (!has_permission('staff', '', 'view')) {
             access_denied('staff');
         }
-        hooks()->do_action('staff_member_edit_view_profile', $id);
+        hooks()->do_action('inspector_member_add_view_profile');
 
-        $this->load->model('departments_model');
+        if ($this->input->post()) {
+            $data = $this->input->post();
+            // Don't do XSS clean here.
+            $data['email_signature'] = $this->input->post('email_signature', false);
+            $data['email_signature'] = html_entity_decode($data['email_signature']);
+
+            if ($data['email_signature'] == strip_tags($data['email_signature'])) {
+                // not contains HTML, add break lines
+                $data['email_signature'] = nl2br_save_html($data['email_signature']);
+            }
+
+            $data['password'] = $this->input->post('password', false);
+            $data['client_id'] = $client_id;
+            $data['addedfrom'] = get_staff_user_id();
+            $data['client_type'] = 'PJK3';
+            $data['is_not_staff'] = '1';
+
+            $id = $this->staff_model->add($data);
+            if ($id) {
+                handle_staff_profile_image_upload($id);
+                set_alert('success', _l('added_successfully', _l('staff_member')));
+                redirect(admin_url('inspectors/staff/member/' . $id));
+            }
+        }
+
+        $title = _l('add_new', _l('staff_member_lowercase'));
+        $data['roles']         = $this->roles_model->get();
+        $data['user_notes']    = $this->misc_model->get_notes('', 'staff');
+        $data['title']         = $title;
+        $this->load->view('admin/inspectors/staff/member', $data);
+    }
+
+    /* Add new staff member or edit existing */
+    public function member($id)
+    {
+        if (!has_permission('staff', '', 'view')) {
+            access_denied('staff');
+        }
+        hooks()->do_action('inspector_member_add_view_profile', $id);
+
         if ($this->input->post()) {
             $data = $this->input->post();
             // Don't do XSS clean here.
@@ -40,70 +80,50 @@ class Staff extends AdminController
 
             $data['password'] = $this->input->post('password', false);
 
-            if ($id == '') {
-                if (!has_permission('staff', '', 'create')) {
-                    access_denied('staff');
-                }
-                $id = $this->staff_model->add($data);
-                if ($id) {
-                    handle_staff_profile_image_upload($id);
-                    set_alert('success', _l('added_successfully', _l('staff_member')));
-                    redirect(admin_url('inspectors/staff/member/' . $id));
-                }
-            } else {
-                if (!has_permission('staff', '', 'edit')) {
-                    access_denied('staff');
-                }
-                handle_staff_profile_image_upload($id);
-                $response = $this->staff_model->update($data, $id);
-                if (is_array($response)) {
-                    if (isset($response['cant_remove_main_admin'])) {
-                        set_alert('warning', _l('staff_cant_remove_main_admin'));
-                    } elseif (isset($response['cant_remove_yourself_from_admin'])) {
-                        set_alert('warning', _l('staff_cant_remove_yourself_from_admin'));
-                    }
-                } elseif ($response == true) {
-                    set_alert('success', _l('updated_successfully', _l('staff_member')));
-                }
-                redirect(admin_url('inspectors/staff/member/' . $id));
+            if (!has_permission('staff', '', 'edit')) {
+                access_denied('staff');
             }
+            handle_staff_profile_image_upload($id);
+            $response = $this->staff_model->update($data, $id);
+            if (is_array($response)) {
+                if (isset($response['cant_remove_main_admin'])) {
+                    set_alert('warning', _l('staff_cant_remove_main_admin'));
+                } elseif (isset($response['cant_remove_yourself_from_admin'])) {
+                    set_alert('warning', _l('staff_cant_remove_yourself_from_admin'));
+                }
+            } elseif ($response == true) {
+                set_alert('success', _l('updated_successfully', _l('staff_member')));
+            }
+            redirect(admin_url('inspectors/staff/member/' . $id));
         }
-        if ($id == '') {
-            $title = _l('add_new', _l('staff_member_lowercase'));
+
+        $member = $this->staff_model->get($id);
+        if (!$member) {
+            blank_page('Staff Member Not Found', 'danger');
+        }
+        $data['member']            = $member;
+        $title                     = $member->firstname . ' ' . $member->lastname;
+        
+        $ts_filter_data = [];
+        if ($this->input->get('filter')) {
+            if ($this->input->get('range') != 'period') {
+                $ts_filter_data[$this->input->get('range')] = true;
+            } else {
+                $ts_filter_data['period-from'] = $this->input->get('period-from');
+                $ts_filter_data['period-to']   = $this->input->get('period-to');
+            }
         } else {
-            $member = $this->staff_model->get($id);
-            if (!$member) {
-                blank_page('Staff Member Not Found', 'danger');
-            }
-            $data['member']            = $member;
-            $title                     = $member->firstname . ' ' . $member->lastname;
-            $data['staff_departments'] = $this->departments_model->get_staff_departments($member->staffid);
-
-            $ts_filter_data = [];
-            if ($this->input->get('filter')) {
-                if ($this->input->get('range') != 'period') {
-                    $ts_filter_data[$this->input->get('range')] = true;
-                } else {
-                    $ts_filter_data['period-from'] = $this->input->get('period-from');
-                    $ts_filter_data['period-to']   = $this->input->get('period-to');
-                }
-            } else {
-                $ts_filter_data['this_month'] = true;
-            }
-
-            $data['logged_time'] = $this->staff_model->get_logged_time_data($id, $ts_filter_data);
-            $data['timesheets']  = $data['logged_time']['timesheets'];
+            $ts_filter_data['this_month'] = true;
         }
-        $this->load->model('currencies_model');
-        $data['base_currency'] = $this->currencies_model->get_base_currency();
+
+        $data['logged_time'] = $this->staff_model->get_logged_time_data($id, $ts_filter_data);
+        $data['timesheets']  = $data['logged_time']['timesheets'];
+    
         $data['roles']         = $this->roles_model->get();
         $data['user_notes']    = $this->misc_model->get_notes($id, 'staff');
-        $data['departments']   = $this->departments_model->get();
         $data['title']         = $title;
 
-        //$this->load->view('admin/staff/member', $data);
         $this->load->view('admin/inspectors/staff/member', $data);
-        //$this->load->view(module_views_path('inspectors','admin/inspectors/member'), $data);
     }
 
     public function save_dashboard_widgets_order()

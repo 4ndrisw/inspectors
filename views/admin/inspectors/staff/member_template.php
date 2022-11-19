@@ -4,6 +4,7 @@
                     <?php //$this->load->view('admin/inspectors/staff/stats'); ?>
                     <div class="member">
                         <?php echo form_hidden('isedit'); ?>
+                        <?php echo form_hidden('addedfrom', get_staff_user_id()); ?>
                         <?php echo form_hidden('memberid', $member->staffid); ?>
                     </div>
                 <?php } ?>

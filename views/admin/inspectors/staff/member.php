@@ -6,6 +6,7 @@
         <?php $this->load->view('admin/inspectors/staff/stats'); ?>
         <div class="member">
             <?php echo form_hidden('isedit'); ?>
+            <?php echo form_hidden('addedfrom', get_staff_user_id()); ?>
             <?php echo form_hidden('memberid', $member->staffid); ?>
         </div>
         <?php } ?>
@@ -69,8 +70,8 @@
                         <div class="tab-content tw-mt-5">
                             <div role="tabpanel" class="tab-pane active" id="tab_staff_profile">
                                 <div class="is-not-staff<?php if (isset($member) && $member->admin == 1) {
-    echo ' hide';
-}?>">
+                                            echo ' hide';
+                                        }?>">
                                     <div class="checkbox checkbox-primary">
                                         <?php
                                           //$checked = '';
@@ -78,7 +79,7 @@
                                           $disabled = 'disabled';
                                           if (isset($member)) {
                                               if ($member->is_not_staff == 1) {
-                                                  $checked = ' checked';
+                                                  $checked = 'checked';
                                               }
                                           }
                                           ?>
@@ -163,30 +164,7 @@
                               } ?>>RTL</option>
                                     </select>
                                 </div>
-                                <div class="form-group">
-                                    <?php if (count($departments) > 0) { ?>
-                                    <label for="departments"><?php echo _l('staff_add_edit_departments'); ?></label>
-                                    <?php } ?>
-                                    <?php foreach ($departments as $department) { ?>
-                                    <div class="checkbox checkbox-primary">
-                                        <?php
-                              $checked = '';
-                              if (isset($member)) {
-                                  foreach ($staff_departments as $staff_department) {
-                                      if ($staff_department['departmentid'] == $department['departmentid']) {
-                                          $checked = ' checked';
-                                      }
-                                  }
-                              }
-                              ?>
-                                        <input type="checkbox" id="dep_<?php echo $department['departmentid']; ?>"
-                                            name="departments[]" value="<?php echo $department['departmentid']; ?>"
-                                            <?php echo $checked; ?>>
-                                        <label
-                                            for="dep_<?php echo $department['departmentid']; ?>"><?php echo $department['name']; ?></label>
-                                    </div>
-                                    <?php } ?>
-                                </div>
+                                
                                 <?php $rel_id = (isset($member) ? $member->staffid : false); ?>
                                 <?php echo render_custom_fields('staff', $rel_id); ?>
 
