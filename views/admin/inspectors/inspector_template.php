@@ -105,7 +105,7 @@
                   <?php
                      $i = 0;
                      $selected = '';
-                     foreach($institutions_sql as $institution){
+                     foreach($institutions as $institution){
                       if(isset($inspector)){
                         if($inspector->institution_id == $institution['userid']) {
                           $selected = $institution['userid'];
@@ -113,7 +113,7 @@
                       }
                       $i++;
                      }
-                     echo render_select('institution_id',$institutions_sql,array('userid',array('company')),'institution',$selected);
+                     echo render_select('institution_id',$institutions,array('userid',array('company')),'institution',$selected);
                   ?>
                </div>
             </div>

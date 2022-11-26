@@ -151,7 +151,7 @@ class Inspectors extends AdminController
             $data['edit']     = true;
             $title            = _l('edit', _l('inspector_lowercase'));
         }
-        $data['institution_sql'] = get_institutions_sql();
+        $data['institutions'] = get_institutions_sql();
         $data['inspector_states'] = $this->inspectors_model->get_states();
         $data['title']             = $title;
 
