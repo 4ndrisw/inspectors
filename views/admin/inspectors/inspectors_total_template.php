@@ -31,8 +31,8 @@
   </div>
   <?php }
   foreach($totals as $key => $data){
-    $class = inspector_status_color_class($data['status']);
-    $name = inspector_status_by_id($data['status']);
+    $class = inspector_state_color_class($data['state']);
+    $name = inspector_state_by_id($data['state']);
     ?>
     <div class="col-md-5ths col-xs-12 total-column">
       <div class="panel_s">

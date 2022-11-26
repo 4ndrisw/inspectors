@@ -9,20 +9,20 @@ defined('BASEPATH') or exit('No direct script access allowed');
 //class Inspectors_model extends App_Model
 class Inspectors_model extends Clients_Model
 {
-    private $states;
+    private $statuses;
     private $contact_columns;
 
     public function __construct()
     {
         parent::__construct();
 
-        $this->states = hooks()->apply_filters('before_set_inspector_states', [
+        $this->statuses = hooks()->apply_filters('before_set_inspector_statuses', [
             3,
             4,
         ]);
 
         $this->load->model('clients_model');
-        $this->contact_columns = hooks()->apply_filters('contact_columns', ['firstname', 'lastname', 'email', 'phonenumber', 'title', 'password', 'send_set_password_email', 'donotsendwelcomeemail', 'permissions', 'direction', 'invoice_emails', 'estimate_emails', 'credit_note_emails', 'contract_emails', 'task_emails', 'program_emails', 'ticket_emails', 'is_primary']);
+        $this->contact_columns = hooks()->apply_filters('contact_columns', ['firstname', 'lastname', 'email', 'phonenumber', 'title', 'password', 'send_set_password_email', 'donotsendwelcomeemail', 'permissions', 'direction', 'invoice_emails', 'estimate_emails', 'credit_note_emails', 'contract_emails', 'task_emails', 'project_emails', 'ticket_emails', 'is_primary']);
 
         $this->load->model(['client_vault_entries_model', 'client_groups_model', 'statement_model']);
     }
@@ -101,12 +101,12 @@ class Inspectors_model extends Clients_Model
     }
 
     /**
-     * Get inspector states
+     * Get inspector statuses
      * @return array
      */
-    public function get_states()
+    public function get_statuses()
     {
-        return $this->states;
+        return $this->statuses;
     }
 
     public function clear_signature($id)
@@ -139,7 +139,7 @@ class Inspectors_model extends Clients_Model
         $_inspector                       = $this->get($id);
         $new_inspector_data               = [];
         $new_inspector_data['clientid']   = $_inspector->clientid;
-        $new_inspector_data['program_id'] = $_inspector->program_id;
+        $new_inspector_data['project_id'] = $_inspector->project_id;
         $new_inspector_data['number']     = get_option('next_inspector_number');
         $new_inspector_data['date']       = _d(date('Y-m-d'));
         $new_inspector_data['expirydate'] = null;
@@ -175,8 +175,8 @@ class Inspectors_model extends Clients_Model
             $new_inspector_data['include_shipping'] = $_inspector->include_shipping;
         }
         $new_inspector_data['show_shipping_on_inspector'] = $_inspector->show_shipping_on_inspector;
-        // Set to unpaid state automatically
-        $new_inspector_data['state']     = 1;
+        // Set to unpaid status automatically
+        $new_inspector_data['status']     = 1;
         $new_inspector_data['clientnote'] = $_inspector->clientnote;
         $new_inspector_data['adminnote']  = '';
         $new_inspector_data['newitems']   = [];
@@ -233,19 +233,19 @@ class Inspectors_model extends Clients_Model
     }
 
     /**
-     * Performs inspectors totals state
+     * Performs inspectors totals status
      * @param array $data
      * @return array
      */
     public function get_inspectors_total($data)
     {
-        $states            = $this->get_states();
+        $statuses            = $this->get_statuses();
         $has_permission_view = has_permission('inspectors', '', 'view');
         $this->load->model('currencies_model');
         
         $sql = 'SELECT';
-        foreach ($states as $inspector_state) {
-            $sql .= '(SELECT SUM(total) FROM ' . db_prefix() . 'inspectors WHERE state=' . $inspector_state;
+        foreach ($statuses as $inspector_status) {
+            $sql .= '(SELECT SUM(total) FROM ' . db_prefix() . 'inspectors WHERE status=' . $inspector_status;
             //$sql .= ' AND currency =' . $this->db->escape_str($currencyid);
             if (isset($data['years']) && count($data['years']) > 0) {
                 $sql .= ' AND YEAR(date) IN (' . implode(', ', array_map(function ($year) {
@@ -255,7 +255,7 @@ class Inspectors_model extends Clients_Model
                 $sql .= ' AND YEAR(date) = ' . date('Y');
             }
             $sql .= $where;
-            $sql .= ') as "' . $inspector_state . '",';
+            $sql .= ') as "' . $inspector_status . '",';
         }
 
         $sql     = substr($sql, 0, -1);
@@ -263,11 +263,11 @@ class Inspectors_model extends Clients_Model
         $_result = [];
         $i       = 1;
         foreach ($result as $key => $val) {
-            foreach ($val as $state => $total) {
+            foreach ($val as $status => $total) {
                 $_result[$i]['total']         = $total;
                 $_result[$i]['symbol']        = $currency->symbol;
                 $_result[$i]['currency_name'] = $currency->name;
-                $_result[$i]['state']        = $state;
+                $_result[$i]['status']        = $status;
                 $i++;
             }
         }
@@ -471,11 +471,11 @@ class Inspectors_model extends Clients_Model
         return $inspector;
     }
 
-    public function mark_action_state($action, $id, $client = false)
+    public function mark_action_status($action, $id, $client = false)
     {
         $this->db->where('id', $id);
         $this->db->update(db_prefix() . 'inspectors', [
-            'state' => $action,
+            'status' => $action,
         ]);
 
         $notifiedUsers = [];
@@ -576,7 +576,7 @@ class Inspectors_model extends Clients_Model
                 }
                 // Admin marked inspector
                 $this->log_inspector_activity($id, 'inspector_activity_marked', false, serialize([
-                    '<state>' . $action . '</state>',
+                    '<status>' . $action . '</status>',
                 ]));
 
                 return true;
@@ -760,10 +760,10 @@ class Inspectors_model extends Clients_Model
             '<custom_data>' . implode(', ', $emails_sent) . '</custom_data>',
         ]));
 
-        // Update inspector state to sent
+        // Update inspector status to sent
         $this->db->where('id', $id);
         $this->db->update(db_prefix() . 'inspectors', [
-            'state' => 2,
+            'status' => 2,
         ]);
 
         $this->db->where('rel_id', $id);
@@ -874,19 +874,19 @@ class Inspectors_model extends Clients_Model
             }
         }
 
-        $state_auto_updated = false;
-        $state_now          = $inspector->state;
+        $status_auto_updated = false;
+        $status_now          = $inspector->status;
 
         if (is_array($send_to) && count($send_to) > 0) {
             $i = 0;
 
-            // Auto update state to sent in case when user sends the inspector is with state draft
-            if ($state_now == 1) {
+            // Auto update status to sent in case when user sends the inspector is with status draft
+            if ($status_now == 1) {
                 $this->db->where('id', $inspector->id);
                 $this->db->update(db_prefix() . 'inspectors', [
-                    'state' => 2,
+                    'status' => 2,
                 ]);
-                $state_auto_updated = true;
+                $status_auto_updated = true;
             }
 
             if ($attachpdf) {
@@ -942,11 +942,11 @@ class Inspectors_model extends Clients_Model
             return true;
         }
 
-        if ($state_auto_updated) {
-            // Inspector not send to customer but the state was previously updated to sent now we need to revert back to draft
+        if ($status_auto_updated) {
+            // Inspector not send to customer but the status was previously updated to sent now we need to revert back to draft
             $this->db->where('id', $inspector->id);
             $this->db->update(db_prefix() . 'inspectors', [
-                'state' => 1,
+                'status' => 1,
             ]);
         }
 
@@ -1002,8 +1002,8 @@ class Inspectors_model extends Clients_Model
      */
     public function update_pipeline($data)
     {
-        $this->mark_action_state($data['state'], $data['inspectorid']);
-        AbstractKanban::updateOrder($data['order'], 'pipeline_order', 'inspectors', $data['state']);
+        $this->mark_action_status($data['status'], $data['inspectorid']);
+        AbstractKanban::updateOrder($data['order'], 'pipeline_order', 'inspectors', $data['status']);
     }
 
     /**
@@ -1038,11 +1038,11 @@ class Inspectors_model extends Clients_Model
         return $data;
     }
 
-    public function do_kanban_query($state, $search = '', $page = 1, $sort = [], $count = false)
+    public function do_kanban_query($status, $search = '', $page = 1, $sort = [], $count = false)
     {
         _deprecated_function('Inspectors_model::do_kanban_query', '2.9.2', 'InspectorsPipeline class');
 
-        $kanBan = (new InspectorsPipeline($state))
+        $kanBan = (new InspectorsPipeline($status))
             ->search($search)
             ->page($page)
             ->sortBy($sort['sort'] ?? null, $sort['sort_by'] ?? null);

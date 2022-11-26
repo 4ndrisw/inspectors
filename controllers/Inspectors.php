@@ -29,8 +29,8 @@ class Inspectors extends AdminController
 
         $isPipeline = $this->session->userdata('inspector_pipeline') == 'true';
 
-        $data['inspector_statuses'] = $this->inspectors_model->get_statuses();
-        if ($isPipeline && !$this->input->get('status') && !$this->input->get('filter')) {
+        $data['inspector_states'] = $this->inspectors_model->get_states();
+        if ($isPipeline && !$this->input->get('state') && !$this->input->get('filter')) {
             $data['title']           = _l('inspectors_pipeline');
             $data['bodyclass']       = 'inspectors-pipeline inspectors-total-manual';
             $data['switch_pipeline'] = false;
@@ -45,7 +45,7 @@ class Inspectors extends AdminController
         } else {
 
             // Pipeline was initiated but user click from home page and need to show table only to filter
-            if ($this->input->get('status') || $this->input->get('filter') && $isPipeline) {
+            if ($this->input->get('state') || $this->input->get('filter') && $isPipeline) {
                 $this->pipeline(0, true);
             }
             
@@ -92,9 +92,19 @@ class Inspectors extends AdminController
                 if (!has_permission('inspectors', '', 'create')) {
                     access_denied('inspectors');
                 }
-                $inspector_data['is_pjk3'] = '1';
-                $id = $this->inspectors_model->add($inspector_data);
+                $inspector_data['is_inspector'] = '1';
+                $next_inspector_number = get_option('next_inspector_number');
+                $_format = get_option('inspector_number_format');
+                $_prefix = get_option('inspector_prefix');
+                
+                $prefix  = isset($inspector->prefix) ? $inspector->prefix : $_prefix;
+                $number_format  = isset($inspector->number_format) ? $inspector->number_format : $_format;
+                $number  = isset($inspector->number) ? $inspector->number : $next_inspector_number;
 
+                $inspector_data['prefix'] = $prefix;
+                $inspector_data['number_format'] = $number_format;
+                $date = date('Y-m-d');
+                $id = $this->inspectors_model->add($inspector_data);
                 if ($id) {
                     set_alert('success', _l('added_successfully', _l('inspector')));
 
@@ -110,17 +120,21 @@ class Inspectors extends AdminController
                     );
                 }
             } else {
-                if (!has_permission('inspectors', '', 'edit')) {
+                if (has_permission('inspectors', '', 'edit') || 
+                   (has_permission('inspectors', '', 'edit_own') && is_staff_related_to_inspector($id))
+                   ) {
+                  
+                    $success = $this->inspectors_model->update($inspector_data, $id);
+                    if ($success) {
+                        set_alert('success', _l('updated_successfully', _l('inspector')));
+                    }
+                    if ($this->set_inspector_pipeline_autoload($id)) {
+                        redirect(admin_url('inspectors/list_inspectors/'));
+                    } else {
+                        redirect(admin_url('inspectors/list_inspectors/' . $id));
+                    }
+                }else{
                     access_denied('inspectors');
-                }
-                $success = $this->inspectors_model->update($inspector_data, $id);
-                if ($success) {
-                    set_alert('success', _l('updated_successfully', _l('inspector')));
-                }
-                if ($this->set_inspector_pipeline_autoload($id)) {
-                    redirect(admin_url('inspectors/list_inspectors/'));
-                } else {
-                    redirect(admin_url('inspectors/list_inspectors/' . $id));
                 }
             }
         }
@@ -137,9 +151,10 @@ class Inspectors extends AdminController
             $data['edit']     = true;
             $title            = _l('edit', _l('inspector_lowercase'));
         }
-
-        $data['inspector_statuses'] = $this->inspectors_model->get_statuses();
+        $data['institution_sql'] = get_institutions_sql();
+        $data['inspector_states'] = $this->inspectors_model->get_states();
         $data['title']             = $title;
+
         $this->load->view('admin/inspectors/inspector', $data);
     }
     
@@ -234,8 +249,10 @@ class Inspectors extends AdminController
         $data['title'] = 'Form add / Edit Staff';
         $data['activity']          = $this->inspectors_model->get_inspector_activity($id);
         $data['inspector']          = $inspector;
+        $_institution          = get_institutions($inspector->institution_id);
+        $data['institution']   = $_institution[0];
         $data['member']           = $this->staff_model->get('', ['active' => 1, 'client_id'=>$id]);
-        $data['inspector_statuses'] = $this->inspectors_model->get_statuses();
+        $data['inspector_states'] = $this->inspectors_model->get_states();
         $data['totalNotes']        = total_rows(db_prefix() . 'notes', ['rel_id' => $id, 'rel_type' => 'inspector']);
 
         $data['send_later'] = false;
@@ -299,16 +316,16 @@ class Inspectors extends AdminController
         }
     }
 
-    public function mark_action_status($status, $id)
+    public function mark_action_state($state, $id)
     {
-        if (!has_permission('inspectors', '', 'edit')) {
+        if (!has_permission('inspectors', '', 'edit') || !has_permission('inspectors', '', 'edit_own')) {
             access_denied('inspectors');
         }
-        $success = $this->inspectors_model->mark_action_status($status, $id);
+        $success = $this->inspectors_model->mark_action_state($state, $id);
         if ($success) {
-            set_alert('success', _l('inspector_status_changed_success'));
+            set_alert('success', _l('inspector_state_changed_success'));
         } else {
-            set_alert('danger', _l('inspector_status_changed_fail'));
+            set_alert('danger', _l('inspector_state_changed_fail'));
         }
         if ($this->set_inspector_pipeline_autoload($id)) {
             redirect($_SERVER['HTTP_REFERER']);
@@ -512,7 +529,7 @@ class Inspectors extends AdminController
     public function get_pipeline()
     {
         if (has_permission('inspectors', '', 'view') || has_permission('inspectors', '', 'view_own') || get_option('allow_staff_view_inspectors_assigned') == '1') {
-            $data['inspector_statuses'] = $this->inspectors_model->get_statuses();
+            $data['inspector_states'] = $this->inspectors_model->get_states();
             $this->load->view('admin/inspectors/pipeline/pipeline', $data);
         }
     }
@@ -535,7 +552,7 @@ class Inspectors extends AdminController
 
     public function update_pipeline()
     {
-        if (has_permission('inspectors', '', 'edit')) {
+        if (has_permission('inspectors', '', 'edit') || has_permission('inspectors', '', 'edit_own')) {
             $this->inspectors_model->update_pipeline($this->input->post());
         }
     }
@@ -557,10 +574,10 @@ class Inspectors extends AdminController
 
     public function pipeline_load_more()
     {
-        $status = $this->input->get('status');
+        $state = $this->input->get('state');
         $page   = $this->input->get('page');
 
-        $inspectors = (new InspectorsPipeline($status))
+        $inspectors = (new InspectorsPipeline($state))
             ->search($this->input->get('search'))
             ->sortBy(
                 $this->input->get('sort_by'),
@@ -571,7 +588,7 @@ class Inspectors extends AdminController
         foreach ($inspectors as $inspector) {
             $this->load->view('admin/inspectors/pipeline/_kanban_card', [
                 'inspector' => $inspector,
-                'status'   => $status,
+                'state'   => $state,
             ]);
         }
     }

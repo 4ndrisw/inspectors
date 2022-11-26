@@ -1,13 +1,20 @@
 <?php
 
 defined('BASEPATH') or exit('No direct script access allowed');
-
+//include_once (APP_MODULES_PATH . 'pengguna/models/' .'Pengguna_model.php');
 class Staff extends AdminController
 {
+    public function __construct()
+    {
+        parent::__construct();
+  //      $this->load->model('pengguna_model');
+
+    }
+
     /* List all staff members */
     public function index()
     {
-        if (!has_permission('staff', '', 'view')) {
+        if (!has_permission('pengguna', '', 'view')) {
             access_denied('staff');
         }
         if ($this->input->is_ajax_request()) {
@@ -22,7 +29,7 @@ class Staff extends AdminController
     /* Add new staff member or edit existing */
     public function add($client_id)
     {
-        if (!has_permission('staff', '', 'view')) {
+        if (!has_permission('pengguna', '', 'view')) {
             access_denied('staff');
         }
         hooks()->do_action('inspector_member_add_view_profile');
@@ -41,8 +48,8 @@ class Staff extends AdminController
             $data['password'] = $this->input->post('password', false);
             $data['client_id'] = $client_id;
             $data['addedfrom'] = get_staff_user_id();
-            $data['client_type'] = 'PJK3';
-            $data['is_not_staff'] = '1';
+            $data['client_type'] = 'inspector';
+            $data['is_not_staff'] = '0';
 
             $id = $this->staff_model->add($data);
             if ($id) {
@@ -54,6 +61,7 @@ class Staff extends AdminController
 
         $title = _l('add_new', _l('staff_member_lowercase'));
         $data['roles']         = $this->roles_model->get();
+        $data['kelompok_pegawai']  = get_kelompok_pegawai();
         $data['user_notes']    = $this->misc_model->get_notes('', 'staff');
         $data['title']         = $title;
         $this->load->view('admin/inspectors/staff/member', $data);
@@ -62,7 +70,7 @@ class Staff extends AdminController
     /* Add new staff member or edit existing */
     public function member($id)
     {
-        if (!has_permission('staff', '', 'view')) {
+        if (!has_permission('pengguna', '', 'view')) {
             access_denied('staff');
         }
         hooks()->do_action('inspector_member_add_view_profile', $id);
@@ -80,7 +88,7 @@ class Staff extends AdminController
 
             $data['password'] = $this->input->post('password', false);
 
-            if (!has_permission('staff', '', 'edit')) {
+            if (!has_permission('pengguna', '', 'edit')) {
                 access_denied('staff');
             }
             handle_staff_profile_image_upload($id);
@@ -102,8 +110,9 @@ class Staff extends AdminController
             blank_page('Staff Member Not Found', 'danger');
         }
         $data['member']            = $member;
+        $data['kelompok_pegawai']  = get_kelompok_pegawai();
         $title                     = $member->firstname . ' ' . $member->lastname;
-        
+
         $ts_filter_data = [];
         if ($this->input->get('filter')) {
             if ($this->input->get('range') != 'period') {
@@ -118,7 +127,7 @@ class Staff extends AdminController
 
         $data['logged_time'] = $this->staff_model->get_logged_time_data($id, $ts_filter_data);
         $data['timesheets']  = $data['logged_time']['timesheets'];
-    
+
         $data['roles']         = $this->roles_model->get();
         $data['user_notes']    = $this->misc_model->get_notes($id, 'staff');
         $data['title']         = $title;
@@ -195,7 +204,7 @@ class Staff extends AdminController
 
         $data['logged_time'] = $this->staff_model->get_logged_time_data(get_staff_user_id());
         $data['title']       = '';
-        $this->load->view('admin/staff/timesheets', $data);
+        $this->load->view('admin/inspectors/staff/timesheets', $data);
     }
 
     public function delete()
@@ -204,7 +213,7 @@ class Staff extends AdminController
             die('Busted, you can\'t delete administrators');
         }
 
-        if (has_permission('staff', '', 'delete')) {
+        if (has_permission('pengguna', '', 'delete')) {
             $success = $this->staff_model->delete($this->input->post('id'), $this->input->post('transfer_data_to'));
             if ($success) {
                 set_alert('success', _l('deleted', _l('staff_member')));
@@ -245,14 +254,14 @@ class Staff extends AdminController
         $data['departments']       = $this->departments_model->get();
         $data['staff_departments'] = $this->departments_model->get_staff_departments($member->staffid);
         $data['title']             = $member->firstname . ' ' . $member->lastname;
-        $this->load->view('admin/staff/profile', $data);
+        $this->load->view('admin/inspectors/staff/profile', $data);
     }
 
     /* Remove staff profile image / ajax */
     public function remove_staff_profile_image($id = '')
     {
         $staff_id = get_staff_user_id();
-        if (is_numeric($id) && (has_permission('staff', '', 'create') || has_permission('staff', '', 'edit'))) {
+        if (is_numeric($id) && (has_permission('pengguna', '', 'create') || has_permission('pengguna', '', 'edit'))) {
             $staff_id = $id;
         }
         hooks()->do_action('before_remove_staff_profile_image');
@@ -315,15 +324,15 @@ class Staff extends AdminController
             'touserid' => get_staff_user_id(),
         ]);
         $data['total_pages'] = ceil($total_notifications / $this->misc_model->get_notifications_limit());
-        $this->load->view('admin/staff/myprofile', $data);
+        $this->load->view('admin/inspectors/staff/myprofile', $data);
     }
 
-    /* Change status to staff active or inactive / ajax */
-    public function change_staff_status($id, $status)
+    /* Change state to staff active or inactive / ajax */
+    public function change_staff_state($id, $state)
     {
-        if (has_permission('staff', '', 'edit')) {
+        if (has_permission('pengguna', '', 'edit')) {
             if ($this->input->is_ajax_request()) {
-                $this->staff_model->change_staff_status($id, $status);
+                $this->staff_model->change_staff_state($id, $state);
             }
         }
     }
@@ -364,9 +373,9 @@ class Staff extends AdminController
                         if (strpos($data, '<lang>') !== false) {
                             $lang = get_string_between($data, '<lang>', '</lang>');
                             $temp = _l($lang);
-                            if (strpos($temp, 'project_status_') !== false) {
-                                $status = get_project_status_by_id(strafter($temp, 'project_status_'));
-                                $temp   = $status['name'];
+                            if (strpos($temp, 'program_state_') !== false) {
+                                $state = get_program_state_by_id(strafter($temp, 'program_state_'));
+                                $temp   = $state['name'];
                             }
                             $additional_data[$x] = $temp;
                         }
@@ -434,14 +443,14 @@ class Staff extends AdminController
 
             header('Content-Type: application/json');
             if ($is_success) {
-                $result['status'] = 'success';
+                $result['state'] = 'success';
                 $result['message'] = _l('google_2fa_code_valid');;
 
                 echo json_encode($result);
                 die;
             }
 
-            $result['status'] = 'failed';
+            $result['state'] = 'failed';
             $result['message'] = _l('google_2fa_code_invalid');;
 
             echo json_encode($result);
@@ -470,4 +479,18 @@ class Staff extends AdminController
         }
         $this->app->get_table_data(module_views_path('inspectors', 'tables/staff'));
     }
+
+
+    public function inspector_staff_companies()
+    {
+        $this->app->get_table_data(module_views_path('inspectors', 'admin/tables/inspector_staff_companies'));
+    }
+
+    public function inspector_staff_programs()
+    {
+        $this->app->get_table_data(module_views_path('inspectors', 'admin/tables/inspector_staff_programs'));
+    }
+
 }
+
+

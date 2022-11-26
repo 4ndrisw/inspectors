@@ -17,13 +17,23 @@ body #inspector-preview .inspector-items table tbody td.description span{
 
 tr.has-row-options-2 a,
 tr.has-row-options-2,
-tr.inspector_status_2 {
+tr.inspector_state_2 {
     background: #004803;
 }
 
 tr.has-row-options-1 a,
 tr.has-row-options-1,
-tr.inspector_status_1 {
+tr.inspector_state_1 {
     background: #b7ab00;
     color: #000;
+}
+.activity-feed .feed-item p {
+    padding: 2px;
+    margin-left: 23px;
+}
+
+input[name="facebook"],
+input[name="linkedin"],
+input[name="skype"] {
+  display: none;
 }

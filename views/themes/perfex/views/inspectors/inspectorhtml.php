@@ -20,14 +20,14 @@
                      <?php echo format_inspector_number($inspector->id); ?>
                      </span>
                   </h3>
-                  <h4 class="inspector-html-status mtop7">
-                     <?php echo format_inspector_status($inspector->status,'',true); ?>
+                  <h4 class="inspector-html-state mtop7">
+                     <?php echo format_inspector_state($inspector->state,'',true); ?>
                   </h4>
                </div>
                <div class="col-md-9">         
                   <?php
                      // Is not accepted, declined and expired
-                     if ($inspector->status != 4 && $inspector->status != 3 && $inspector->status != 5) {
+                     if ($inspector->state != 4 && $inspector->state != 3 && $inspector->state != 5) {
                        $can_be_accepted = true;
                        if($identity_confirmation_enabled == '0'){
                          echo form_open($this->uri->uri_string(), array('class'=>'pull-right mtop7 action-button'));
@@ -37,8 +37,8 @@
                        } else {
                          echo '<button type="button" id="accept_action" class="btn btn-success mright5 mtop7 pull-right action-button accept"><i class="fa fa-check"></i> '._l('clients_accept_inspector').'</button>';
                        }
-                     } else if($inspector->status == 3){
-                       if (($inspector->expirydate >= date('Y-m-d') || !$inspector->expirydate) && $inspector->status != 5) {
+                     } else if($inspector->state == 3){
+                       if (($inspector->expirydate >= date('Y-m-d') || !$inspector->expirydate) && $inspector->state != 5) {
                          $can_be_accepted = true;
                          if($identity_confirmation_enabled == '0'){
                            echo form_open($this->uri->uri_string(),array('class'=>'pull-right mtop7 action-button'));
@@ -51,7 +51,7 @@
                        }
                      }
                      // Is not accepted, declined and expired
-                     if ($inspector->status != 4 && $inspector->status != 3 && $inspector->status != 5) {
+                     if ($inspector->state != 4 && $inspector->state != 3 && $inspector->state != 5) {
                        echo form_open($this->uri->uri_string(), array('class'=>'pull-right action-button mright5 mtop7'));
                        echo form_hidden('inspector_action', 3);
                        echo '<button type="submit" data-loading-text="'._l('wait_text').'" autocomplete="off" class="btn btn-default action-button accept"><i class="fa fa-remove"></i> '._l('clients_decline_inspector').'</button>';
@@ -135,10 +135,10 @@
                   <?php echo $inspector->reference_no; ?>
                </p>
                <?php } ?>
-               <?php if($inspector->project_id != 0 && get_option('show_project_on_inspector') == 1){ ?>
-               <p class="no-mbot inspector-html-project">
-                  <span class="bold"><?php echo _l('project'); ?>:</span>
-                  <?php echo get_project_name_by_id($inspector->project_id); ?>
+               <?php if($inspector->program_id != 0 && get_option('show_program_on_inspector') == 1){ ?>
+               <p class="no-mbot inspector-html-program">
+                  <span class="bold"><?php echo _l('program'); ?>:</span>
+                  <?php echo get_program_name_by_id($inspector->program_id); ?>
                </p>
                <?php } ?>
                <?php $pdf_custom_fields = get_custom_fields('inspector',array('show_on_pdf'=>1,'show_on_client_portal'=>1));

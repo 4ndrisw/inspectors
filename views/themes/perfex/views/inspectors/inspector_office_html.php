@@ -20,8 +20,8 @@
                      <?php echo format_inspector_number($inspector->id); ?>
                      </span>
                   </h3>
-                  <h4 class="inspector-html-status mtop7">
-                     <?php echo format_inspector_status($inspector->status,'',true); ?>
+                  <h4 class="inspector-html-state mtop7">
+                     <?php echo format_inspector_state($inspector->state,'',true); ?>
                   </h4>
                </div>
                <div class="col-md-9">
@@ -120,10 +120,10 @@
                   <?php echo $inspector->reference_no; ?>
                </p>
                <?php } ?>
-               <?php if($inspector->project_id != 0 && get_option('show_project_on_inspector') == 1){ ?>
-               <p class="no-mbot inspector-html-project">
-                  <span class="bold"><?php echo _l('project'); ?>:</span>
-                  <?php echo get_project_name_by_id($inspector->project_id); ?>
+               <?php if($inspector->program_id != 0 && get_option('show_program_on_inspector') == 1){ ?>
+               <p class="no-mbot inspector-html-program">
+                  <span class="bold"><?php echo _l('program'); ?>:</span>
+                  <?php echo get_program_name_by_id($inspector->program_id); ?>
                </p>
                <?php } ?>
                <?php $pdf_custom_fields = get_custom_fields('inspector',array('show_on_pdf'=>1,'show_on_client_portal'=>1));

@@ -10,13 +10,13 @@
                     echo form_hidden('sale_agent_'.$agent['sale_agent']);
                 }
             }
-            if(isset($inspector_statuses)){
-                foreach($inspector_statuses as $_status){
+            if(isset($inspector_states)){
+                foreach($inspector_states as $_state){
                     $val = '';
-                    if($_status == $this->input->get('status')){
-                        $val = $_status;
+                    if($_state == $this->input->get('state')){
+                        $val = $_state;
                     }
-                    echo form_hidden('inspectors_'.$_status,$val);
+                    echo form_hidden('inspectors_'.$_state,$val);
                 }
             }
             if(isset($inspectors_years)){
@@ -25,28 +25,28 @@
                 }
             }
             echo form_hidden('not_sent',$this->input->get('filter'));
-            echo form_hidden('project_id');
+            echo form_hidden('program_id');
             echo form_hidden('invoiced');
             echo form_hidden('not_invoiced');
             ?>
         </div>
         <div class="row text-left quick-top-stats">
-            <?php foreach($inspector_statuses as $status){
-              $percent_data = get_inspectors_percent_by_status($status, (isset($project) ? $project->id : null));
+            <?php foreach($inspector_states as $state){
+              $percent_data = get_inspectors_percent_by_state($state, (isset($program) ? $program->id : null));
               ?>
               <div class="col-md-5ths col-xs-12">
                 <div class="row">
                     <div class="col-md-7">
-                        <a href="#" data-cview="inspectors_<?php echo $status; ?>" onclick="dt_custom_view('inspectors_<?php echo $status; ?>','.table-inspectors','inspectors_<?php echo $status; ?>',true); return false;">
-                            <h5><?php echo format_inspector_status($status,'',false); ?></h5>
+                        <a href="#" data-cview="inspectors_<?php echo $state; ?>" onclick="dt_custom_view('inspectors_<?php echo $state; ?>','.table-inspectors','inspectors_<?php echo $state; ?>',true); return false;">
+                            <h5><?php echo format_inspector_state($state,'',false); ?></h5>
                         </a>
                     </div>
                     <div class="col-md-5 text-right">
-                        <?php echo $percent_data['total_by_status']; ?> / <?php echo $percent_data['total']; ?>
+                        <?php echo $percent_data['total_by_state']; ?> / <?php echo $percent_data['total']; ?>
                     </div>
                     <div class="col-md-12">
                         <div class="progress no-margin">
-                            <div class="progress-bar progress-bar-<?php echo inspector_status_color_class($status); ?>" role="progressbar" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100" style="width: 0%" data-percent="<?php echo $percent_data['percent']; ?>">
+                            <div class="progress-bar progress-bar-<?php echo inspector_state_color_class($state); ?>" role="progressbar" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100" style="width: 0%" data-percent="<?php echo $percent_data['percent']; ?>">
                             </div>
                         </div>
                     </div>

@@ -2,7 +2,7 @@
 $features = get_available_staff_permissions($funcData);
 $unset = [
    'bulk_pdf_exporter', 'contracts', 'credit_notes', 'customers', 'email_templates', 'estimates', 'expenses', 'invoices', 'items', 
-   'knowledge_base', 'payments', 'projects', 'proposals', 'reports', 'roles', 'settings', 'staff', 'subscriptions', 'tasks', 
+   'knowledge_base', 'payments', 'programs', 'proposals', 'reports', 'roles', 'settings', 'staff', 'subscriptions', 'tasks', 
    'checklist_templates', 'estimate_request', 'leads', 
 ];
 

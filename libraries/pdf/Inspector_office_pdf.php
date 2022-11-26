@@ -30,7 +30,7 @@ class Inspector_office_pdf extends App_pdf
     {
 
         $this->set_view_vars([
-            'status'          => $this->inspector->status,
+            'state'          => $this->inspector->state,
             'inspector_number' => str_replace("SCH", "SCH-UPT", $this->inspector_number),
             'inspector'        => $this->inspector,
         ]);

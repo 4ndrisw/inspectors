@@ -70,10 +70,10 @@
                                 </div>
                             </div>
                             <div class="col-md-5ths">
-                                <div class="select-placeholder projects-wrapper">
-                                    <div id="project_ajax_search_wrapper">
-                                        <select data-empty-title="<?php echo _l('project'); ?>" multiple="true"
-                                            name="project_id[]" id="project_id" class="projects ajax-search"
+                                <div class="select-placeholder programs-wrapper">
+                                    <div id="program_ajax_search_wrapper">
+                                        <select data-empty-title="<?php echo _l('program'); ?>" multiple="true"
+                                            name="program_id[]" id="program_id" class="programs ajax-search"
                                             data-live-search="true" data-width="100%">
                                         </select>
                                     </div>
@@ -102,11 +102,11 @@
                                     <?php if (isset($view_all)) { ?>
                                     <th><?php echo _l('staff_member'); ?></th>
                                     <?php } ?>
-                                    <th><?php echo _l('project_timesheet_task'); ?></th>
+                                    <th><?php echo _l('program_timesheet_task'); ?></th>
                                     <th><?php echo _l('timesheet_tags'); ?></th>
                                     <?php if (get_option('round_off_task_timer_option') == 0) { ?>
-                                    <th class="t-start-time"><?php echo _l('project_timesheet_start_time'); ?></th>
-                                    <th class="t-end-time"><?php echo _l('project_timesheet_end_time'); ?></th>
+                                    <th class="t-start-time"><?php echo _l('program_timesheet_start_time'); ?></th>
+                                    <th class="t-end-time"><?php echo _l('program_timesheet_end_time'); ?></th>
                                     <?php } ?>
                                     <th width="150px;"><?php echo _l('note'); ?></th>
                                     <th><?php echo _l('task_relation'); ?></th>
@@ -144,7 +144,7 @@
 var staff_member_select = $('select[name="staff_id"]');
 $(function() {
 
-    init_ajax_projects_search();
+    init_ajax_programs_search();
     var ctx = document.getElementById("timesheetsChart");
     var chartOptions = {
         type: 'bar',
@@ -217,7 +217,7 @@ $(function() {
     Timesheets_ServerParams['period-from'] = '[name="period-from"]';
     Timesheets_ServerParams['period-to'] = '[name="period-to"]';
     Timesheets_ServerParams['staff_id'] = '[name="staff_id"]';
-    Timesheets_ServerParams['project_id'] = 'select#project_id';
+    Timesheets_ServerParams['program_id'] = 'select#program_id';
     Timesheets_ServerParams['clientid'] = 'select#clientid';
     Timesheets_ServerParams['group_by_task'] = '[name="group_by_task"]:checked';
     initDataTable('.table-timesheets-report', window.location.href, undefined, undefined,
@@ -227,16 +227,16 @@ $(function() {
                                 echo 2;
                             } ?>, 'desc']);
 
-    init_ajax_project_search_by_customer_id();
+    init_ajax_program_search_by_customer_id();
 
     $('#clientid').on('change', function() {
-        var projectAjax = $('select#project_id');
-        var clonedProjectsAjaxSearchSelect = projectAjax.html('').clone();
-        var projectsWrapper = $('.projects-wrapper');
-        projectAjax.selectpicker('destroy').remove();
-        projectAjax = clonedProjectsAjaxSearchSelect;
-        $('#project_ajax_search_wrapper').append(clonedProjectsAjaxSearchSelect);
-        init_ajax_project_search_by_customer_id();
+        var programAjax = $('select#program_id');
+        var clonedProgramsAjaxSearchSelect = programAjax.html('').clone();
+        var programsWrapper = $('.programs-wrapper');
+        programAjax.selectpicker('destroy').remove();
+        programAjax = clonedProgramsAjaxSearchSelect;
+        $('#program_ajax_search_wrapper').append(clonedProgramsAjaxSearchSelect);
+        init_ajax_program_search_by_customer_id();
     });
 
     timesheetsTable.on('init.dt', function() {

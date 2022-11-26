@@ -41,10 +41,10 @@
             <?php } ?>
             <?php echo form_open_multipart($this->uri->uri_string(), ['class' => 'staff-form', 'autocomplete' => 'off']); ?>
             <div class="col-md-<?php if (!isset($member)) {
-    echo '8 col-md-offset-2';
-} else {
-    echo '5';
-} ?>" id="small-table">
+                    echo '8 col-md-offset-2';
+                } else {
+                    echo '5';
+                } ?>" id="small-table">
                 <div class="panel_s">
                     <div class="panel-body ">
                         <div class="horizontal-scrollable-tabs panel-full-width-tabs">
@@ -74,8 +74,8 @@
                                         }?>">
                                     <div class="checkbox checkbox-primary">
                                         <?php
-                                          //$checked = '';
-                                          $checked = 'checked';
+                                          $checked = '';
+                                          //$checked = 'checked';
                                           $disabled = 'disabled';
                                           if (isset($member)) {
                                               if ($member->is_not_staff == 1) {
@@ -119,7 +119,17 @@
                                 <?php echo render_input('email', 'staff_add_edit_email', $value, 'email', ['autocomplete' => 'off']); ?>
                                 <?php $value = (isset($member) ? $member->phonenumber : ''); ?>
                                 <?php echo render_input('phonenumber', 'staff_add_edit_phonenumber', $value); ?>
-                                
+                                <?php
+                                    $selected = '';
+                                    foreach($kelompok_pegawai as $kelompok){
+                                     if(isset($member)){
+                                       if($member->kelompok_pegawai_id == $kelompok['id']) {
+                                         $selected = $kelompok['id'];
+                                       }
+                                     }
+                                    }
+                                    echo render_select('kelompok_pegawai_id',$kelompok_pegawai,array('id',array('name')),'kelompok_pegawai_string',$selected);
+                                ?>
 
                                 <?php if (!is_language_disabled()) { ?>
                                 <div class="form-group select-placeholder">
@@ -130,16 +140,16 @@
                                         data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
                                         <option value=""><?php echo _l('system_default_string'); ?></option>
                                         <?php foreach ($this->app->get_available_languages() as $availableLanguage) {
-                                  $selected = '';
-                                  if (isset($member)) {
-                                      if ($member->default_language == $availableLanguage) {
-                                          $selected = 'selected';
-                                      }
-                                  } ?>
-                                        <option value="<?php echo $availableLanguage; ?>" <?php echo $selected; ?>>
-                                            <?php echo ucfirst($availableLanguage); ?></option>
-                                        <?php
-                              } ?>
+                                              $selected = '';
+                                              if (isset($member)) {
+                                                      if ($member->default_language == $availableLanguage) {
+                                                          $selected = 'selected';
+                                                      }
+                                              } ?>
+                                            <option value="<?php echo $availableLanguage; ?>" <?php echo $selected; ?>>
+                                                <?php echo ucfirst($availableLanguage); ?></option>
+                                            <?php
+                                      } ?>
                                     </select>
                                 </div>
                                 <?php } ?>
@@ -148,25 +158,6 @@
                                     data-title="<?php echo _l('staff_email_signature_help'); ?>"></i>
                                 <?php $value = (isset($member) ? $member->email_signature : ''); ?>
                                 <?php echo render_textarea('email_signature', 'settings_email_signature', $value, ['data-entities-encode' => 'true']); ?>
-                                <div class="form-group select-placeholder">
-                                    <label for="direction"><?php echo _l('document_direction'); ?></label>
-                                    <select class="selectpicker"
-                                        data-none-selected-text="<?php echo _l('system_default_string'); ?>"
-                                        data-width="100%" name="direction" id="direction">
-                                        <option value="" <?php if (isset($member) && empty($member->direction)) {
-                                  echo 'selected';
-                              } ?>></option>
-                                        <option value="ltr" <?php if (isset($member) && $member->direction == 'ltr') {
-                                  echo 'selected';
-                              } ?>>LTR</option>
-                                        <option value="rtl" <?php if (isset($member) && $member->direction == 'rtl') {
-                                  echo 'selected';
-                              } ?>>RTL</option>
-                                    </select>
-                                </div>
-                                
-                                <?php $rel_id = (isset($member) ? $member->staffid : false); ?>
-                                <?php echo render_custom_fields('staff', $rel_id); ?>
 
                                 <div class="row">
                                     <div class="col-md-12">
@@ -187,7 +178,6 @@
                                                 for="administrator"><?php echo _l('staff_add_edit_administrator'); ?></label>
                                         </div>
                                         <?php } ?>
-
 
                                         <?php 
                                             $checked = 'checked';
@@ -459,7 +449,7 @@
                                  echo '<a href="' . $rel_values['link'] . '">' . $rel_values['name'] . '</a>';
                                  ?>
                                     </td>
-                                    <td><?php echo app_format_money($t['hourly_rate'], $base_currency); ?></td>
+                                    <td><?php //echo app_format_money($t['hourly_rate'], $base_currency); ?></td>
                                     <td>
                                         <?php echo '<b>' . seconds_to_time_format($t['end_time'] - $t['start_time']) . '</b>'; ?>
                                     </td>
@@ -473,7 +463,7 @@
                                         <?php
                                  if (!$t['billed']) {
                                      if (has_permission('tasks', '', 'delete')
-                                       || (has_permission('projects', '', 'delete') && $t['rel_type'] == 'project')
+                                       || (has_permission('programs', '', 'delete') && $t['rel_type'] == 'program')
                                        || $t['staff_id'] == get_staff_user_id()) {
                                          echo '<a href="' . admin_url('tasks/delete_timesheet/' . $t['id']) . '" class="pull-right text-danger mtop5"><i class="fa fa-remove"></i></a>';
                                      }
@@ -489,12 +479,12 @@
                                     <td></td>
                                     <td></td>
                                     <td></td>
-                                    <td align="right"><?php echo '<b>' . _l('total_by_hourly_rate') . ':</b> ' . app_format_money(
-                                  collect($total_logged_time)->reduce(function ($carry, $item) {
-                                      return $carry + (sec2qty($item['total']) * (float) $item['hourly_rate']);
-                                  }, 0),
-                                  $base_currency
-                              ); ?>
+                                    <td align="right"><?php echo '<b>' . _l('total_by_hourly_rate') . ':</b> ' /*. app_format_money(
+                                          collect($total_logged_time)->reduce(function ($carry, $item) {
+                                              return $carry + (sec2qty($item['total']) * (float) $item['hourly_rate']);
+                                          }, 0),
+                                          $base_currency
+                                      )*/; ?>
                                     </td>
                                     <td align="right">
                                         <?php echo '<b>' . _l('total_logged_hours_by_staff') . ':</b> ' . seconds_to_time_format(
@@ -513,19 +503,35 @@
                     </div>
                 </div>
                 <h4 class="tw-mt-0 tw-font-semibold tw-text-lg tw-text-neutral-700">
-                    <?php echo _l('projects'); ?>
+                    <?php echo _l('companies'); ?>
                 </h4>
                 <div class="panel_s">
                     <div class="panel-body">
-                        <div class="_filters _hidden_inputs hidden staff_projects_filter">
+                        <div class="_filters _hidden_inputs hidden staff_companies_filter">
+                        <?php echo form_hidden('staff_id', $member->staffid); ?>
+                        </div>
+                        <?php render_datatable([
+                          _l('program_name'),
+                          _l('program_start_date'),
+                          _l('program_deadline'),
+                          _l('program_state'),
+                          ], 'inspector-staff-companies'); ?>
+                    </div>
+                </div>
+                <h4 class="tw-mt-0 tw-font-semibold tw-text-lg tw-text-neutral-700">
+                    <?php echo _l('programs'); ?>
+                </h4>
+                <div class="panel_s">
+                    <div class="panel-body">
+                        <div class="_filters _hidden_inputs hidden staff_programs_filter">
                             <?php echo form_hidden('staff_id', $member->staffid); ?>
                         </div>
                         <?php render_datatable([
-                  _l('project_name'),
-                  _l('project_start_date'),
-                  _l('project_deadline'),
-                  _l('project_status'),
-                  ], 'staff-projects'); ?>
+                  _l('program_name'),
+                  _l('program_start_date'),
+                  _l('program_deadline'),
+                  _l('program_state'),
+                  ], 'inspector-staff-programs'); ?>
                     </div>
                 </div>
             </div>
@@ -536,6 +542,8 @@
     <?php init_tail(); ?>
     <script>
     $(function() {
+        init_table_inspector_staff_companies();
+        init_table_inspector_staff_programs();
 
         $('select[name="role"]').on('change', function() {
             var roleid = $(this).val();

@@ -245,7 +245,7 @@
 
                 if (qr_loaded == 0) {
                     $('#qr_image').load(admin_url + 'authentication/get_qr', {}, function(response,
-                        status) {
+                        state) {
                         qr_loaded = 1;
                         $('#qr_image').show();
                     });

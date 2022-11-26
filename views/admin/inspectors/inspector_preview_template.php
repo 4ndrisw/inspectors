@@ -25,7 +25,7 @@
                      <?php
                         $total_staffs = total_rows(db_prefix().'staff',
                           array(
-                           'is_not_staff'=>1,
+                           'is_not_staff'=>0,
                            //'staff'=>get_staff_user_id(),
                            'client_type'=>'inspector',
                            'client_id'=>$inspector->userid
@@ -97,14 +97,14 @@
          </div>
          <div class="row mtop10">
             <div class="col-md-3">
-               <?php echo format_inspector_status($inspector->active,'mtop5');  ?>
+               <?php echo format_inspector_state($inspector->active,'mtop5');  ?>
             </div>
             <div class="col-md-9">
                <div class="visible-xs">
                   <div class="mtop10"></div>
                </div>
                <div class="pull-right _buttons">
-                  <?php if(staff_can('edit', 'inspectors')){ ?>
+                  <?php if(staff_can('edit', 'inspectors') || staff_can('edit_own', 'inspectors')){ ?>
                   <a href="<?php echo admin_url('inspectors/inspector/'.$inspector->userid); ?>" class="btn btn-default btn-with-tooltip" data-toggle="tooltip" title="<?php echo _l('edit_inspector_tooltip'); ?>" data-placement="bottom"><i class="fa-solid fa-pen-to-square"></i></a>
                   <?php } ?>
                   <div class="btn-group">
@@ -166,12 +166,12 @@
          <hr class="hr-panel-heading" />
          <div class="tab-content">
             <div role="tabpanel" class="tab-pane ptop10 active" id="tab_inspector">
-               <?php if(isset($inspector->inspectord_email) && $inspector->inspectord_email) { ?>
+               <?php if(isset($inspector->scheduled_email) && $inspector->scheduled_email) { ?>
                      <div class="alert alert-warning">
-                        <?php echo _l('invoice_will_be_sent_at', _dt($inspector->inspectord_email->inspectord_at)); ?>
+                        <?php echo _l('invoice_will_be_sent_at', _dt($inspector->scheduled_email->scheduled_at)); ?>
                         <?php if(staff_can('edit', 'inspectors') || $inspector->addedfrom == get_staff_user_id()) { ?>
                            <a href="#"
-                           onclick="edit_inspector_inspectord_email(<?php echo $inspector->inspectord_email->id; ?>); return false;">
+                           onclick="edit_inspector_scheduled_email(<?php echo $inspector->scheduled_email->id; ?>); return false;">
                            <?php echo _l('edit'); ?>
                         </a>
                      <?php } ?>
@@ -203,32 +203,10 @@
                            <?php echo format_inspector_info($inspector); ?>
                         </address>
                      </div>
-                     <div class="col-sm-6 text-right">
-                        <span class="bold"><?php echo _l('inspector_to'); ?>:</span>
+                     <div class="col-sm-6 text-right mtop15">
                         <address>
-                           <?php //echo format_customer_info($inspector, 'inspector', 'billing', true); ?>
+                           <?php echo format_institution_info($institution); ?>
                         </address>
-                        <span class="bold"><?php echo _l('ship_to'); ?>:</span>
-                        <address>
-                           <?php //echo format_customer_info($inspector, 'inspector', 'shipping'); ?>
-                        </address>
-
-                        <p class="no-mbot">
-                           <span class="bold">
-                           <?php echo _l('inspector_data_date'); ?>:
-                           </span>
-                           <?php echo $inspector->datecreated; ?>
-                        </p>
-
-                        <?php 
-                        echo $inspector->userid;
-                        echo '<br />';
-                        echo $inspector->company;
-                        echo '<pre>';
-                        //var_dump($inspector);
-                        echo '</pre>';
-                        ?>
-
                      </div>
                   </div>
 
@@ -238,12 +216,13 @@
                <?php init_relation_tasks_table(array('data-new-rel-id'=>$inspector->userid,'data-new-rel-type'=>'inspector')); ?>
             </div>
             <div role="tabpanel" class="tab-pane" id="tab_staffs">
-                <?php if (has_permission('staff', '', 'create')) { ?>
+                <?php if (has_permission('pengguna', '', 'create')) { ?>
                 <div class="tw-mb-2 sm:tw-mb-4">
                     <a href="<?php echo admin_url('inspectors/staff/add/'. $inspector->userid); ?>" class="btn btn-primary">
                         <i class="fa-regular fa-plus tw-mr-1"></i>
                         <?php echo _l('new_staff'); ?>
                     </a>
+                    <?php echo $inspector->company; ?>
                 </div>
                 <?php } ?>
                <hr />
@@ -313,13 +292,13 @@
                                   foreach($additional_data as $data){
                                     if(strpos($data,'<original_active>') !== false){
                                       $original_active = get_string_between($data, '<original_active>', '</original_active>');
-                                      $additional_data[$i] = format_inspector_status($original_active,'',false);
+                                      $additional_data[$i] = format_inspector_state($original_active,'',false);
                                     } else if(strpos($data,'<new_active>') !== false){
                                       $new_active = get_string_between($data, '<new_active>', '</new_active>');
-                                      $additional_data[$i] = format_inspector_status($new_active,'',false);
+                                      $additional_data[$i] = format_inspector_state($new_active,'',false);
                                     } else if(strpos($data,'<active>') !== false){
                                       $active = get_string_between($data, '<active>', '</active>');
-                                      $additional_data[$i] = format_inspector_status($active,'',false);
+                                      $additional_data[$i] = format_inspector_state($active,'',false);
                                     } else if(strpos($data,'<custom_data>') !== false){
                                       $_custom_data = get_string_between($data, '<custom_data>', '</custom_data>');
                                       unset($additional_data[$i]);
@@ -329,7 +308,10 @@
                                  }
                                  $_formatted_activity = _l($activity['description'],$additional_data);
                                  if($_custom_data !== false){
-                                 $_formatted_activity .= ' - ' .$_custom_data;
+                                 $_formatted_activity .= '<br />';
+                                 $_formatted_activity .= '<p>';
+                                 $_formatted_activity .= $_custom_data;
+                                 $_formatted_activity .= '</p>';
                                  }
                                  if(!empty($activity['full_name'])){
                                  $_formatted_activity = $activity['full_name'] . ' - ' . $_formatted_activity;

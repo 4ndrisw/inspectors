@@ -20,13 +20,13 @@
                             <tr>
                                 <th><?php echo _l('inspector_number'); ?> #</th>
                                 <th class="<?php echo (isset($client) ? 'not_visible' : ''); ?>"><?php echo _l('inspector_list_client'); ?></th>
-                                <th><?php echo _l('inspector_list_project'); ?></th>
+                                <th><?php echo _l('inspector_list_program'); ?></th>
                                 <th><?php echo _l('inspector_list_date'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($inspectors as $inspector) { ?>
-                                <tr class="<?= 'inspector_status_' . $inspector['status']?>">
+                                <tr class="<?= 'inspector_state_' . $inspector['state']?>">
                                     <td>
                                         <?php echo '<a href="' . admin_url("inspectors/inspector/" . $inspector["id"]) . '">' . format_inspector_number($inspector["id"]) . '</a>'; ?>
                                     </td>
@@ -34,7 +34,7 @@
                                         <?php echo '<a href="' . admin_url("clients/client/" . $inspector["userid"]) . '">' . $inspector["company"] . '</a>'; ?>
                                     </td>
                                     <td>
-                                        <?php echo '<a href="' . admin_url("projects/view/" . $inspector["projects_id"]) . '">' . $inspector['name'] . '</a>'; ?>
+                                        <?php echo '<a href="' . admin_url("programs/view/" . $inspector["programs_id"]) . '">' . $inspector['name'] . '</a>'; ?>
                                     </td>
                                     <td>
                                         <?php echo _d($inspector['date']); ?>

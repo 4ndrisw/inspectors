@@ -1,5 +1,5 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
-   if ($inspector['status'] == $status) { ?>
+   if ($inspector['state'] == $state) { ?>
 <li data-inspector-id="<?php echo $inspector['id']; ?>" class="<?php if($inspector['invoiceid'] != NULL){echo 'not-sortable';} ?>">
    <div class="panel-body">
       <div class="row">

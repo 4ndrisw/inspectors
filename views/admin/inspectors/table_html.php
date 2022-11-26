@@ -2,7 +2,7 @@
 
 $table_data = array(
    _l('the_number_sign'),
-   _l('pjk3'),
+   _l('inspector'),
    _l('contact_primary'),
    array(
       'name'=>_l('company_primary_email'),
@@ -17,7 +17,7 @@ $table_data = array(
    _l('customer_active'),
 //   _l('inspector_dt_table_heading_expirydate'),
    //_l('reference_no'),
-   _l('preffered_pjk3'));
+   _l('preffered_inspector'));
 
 $custom_fields = get_custom_fields('inspector',array('show_on_table'=>1));
 

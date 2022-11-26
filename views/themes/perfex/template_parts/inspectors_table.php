@@ -3,9 +3,9 @@
     <thead>
         <tr>
             <th><?php echo _l('inspector_number'); ?> #</th>
-            <th><?php echo _l('inspector_list_project'); ?></th>
+            <th><?php echo _l('inspector_list_program'); ?></th>
             <th><?php echo _l('inspector_list_date'); ?></th>
-            <th><?php echo _l('inspector_list_status'); ?></th>
+            <th><?php echo _l('inspector_list_state'); ?></th>
 
         </tr>
     </thead>
@@ -15,7 +15,7 @@
                 <td><?php echo '<a href="' . site_url("inspectors/show/" . $inspector["id"] . '/' . $inspector["hash"]) . '">' . format_inspector_number($inspector["id"]) . '</a>'; ?></td>
                 <td><?php echo $inspector['name']; ?></td>
                 <td><?php echo _d($inspector['date']); ?></td>
-                <td><?php echo format_inspector_status($inspector['status']); ?></td>
+                <td><?php echo format_inspector_state($inspector['state']); ?></td>
             </tr>
         <?php } ?>
     </tbody>

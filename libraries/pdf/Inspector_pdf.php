@@ -30,7 +30,7 @@ class Inspector_pdf extends App_pdf
     {
 
         $this->set_view_vars([
-            'status'          => $this->inspector->status,
+            'state'          => $this->inspector->state,
             'inspector_number' => $this->inspector_number,
             'inspector'        => $this->inspector,
         ]);

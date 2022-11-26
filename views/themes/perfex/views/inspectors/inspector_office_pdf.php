@@ -10,8 +10,8 @@ $info_left_column  = '';
 $info_right_column .= '<span style="font-weight:bold;font-size:27px;">' . _l('inspector_office_pdf_heading') . '</span><br />';
 $info_right_column .= '<b style="color:#4e4e4e;"># ' . str_replace("SCH","SCH-UPT",$inspector_number) . '</b>';
 
-if (get_option('show_status_on_pdf_ei') == 1) {
-    $info_right_column .= '<br /><span style="color:rgb(' . inspector_status_color_pdf($status) . ');text-transform:uppercase;">' . format_inspector_status($status, '', false) . '</span>';
+if (get_option('show_state_on_pdf_ei') == 1) {
+    $info_right_column .= '<br /><span style="color:rgb(' . inspector_state_color_pdf($state) . ');text-transform:uppercase;">' . format_inspector_state($state, '', false) . '</span>';
 }
 
 // Add logo
@@ -62,8 +62,8 @@ foreach($inspector_members as $member){
 $inspector_info = '<br />' . _l('inspector_data_date') . ': ' . _d($inspector->date) . '<br />';
 
 
-if ($inspector->project_id != 0 && get_option('show_project_on_inspector') == 1) {
-    $inspector_info .= _l('project') . ': ' . get_project_name_by_id($inspector->project_id) . '<br />';
+if ($inspector->program_id != 0 && get_option('show_program_on_inspector') == 1) {
+    $inspector_info .= _l('program') . ': ' . get_program_name_by_id($inspector->program_id) . '<br />';
 }
 
 

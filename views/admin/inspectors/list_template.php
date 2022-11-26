@@ -25,19 +25,11 @@
           <?php echo _l('not_sent_indicator'); ?>
         </a>
       </li>
-      <li>
-        <a href="#" data-cview="invoiced" onclick="dt_custom_view('invoiced','.table-inspectors','invoiced'); return false;">
-          <?php echo _l('inspector_invoiced'); ?>
-        </a>
-      </li>
-      <li>
-        <a href="#" data-cview="not_invoiced" onclick="dt_custom_view('not_invoiced','.table-inspectors','not_invoiced'); return false;"><?php echo _l('inspectors_not_invoiced'); ?></a>
-      </li>
       <li class="divider"></li>
-      <?php foreach($inspector_statuses as $status){ ?>
-        <li class="<?php if($this->input->get('status') == $status){echo 'active';} ?>">
-          <a href="#" data-cview="inspectors_<?php echo $status; ?>" onclick="dt_custom_view('inspectors_<?php echo $status; ?>','.table-inspectors','inspectors_<?php echo $status; ?>'); return false;">
-            <?php echo format_inspector_status($status,'',false); ?>
+      <?php foreach($inspector_states as $state){ ?>
+        <li class="<?php if($this->input->get('state') == $state){echo 'active';} ?>">
+          <a href="#" data-cview="inspectors_<?php echo $state; ?>" onclick="dt_custom_view('inspectors_<?php echo $state; ?>','.table-inspectors','inspectors_<?php echo $state; ?>'); return false;">
+            <?php echo format_inspector_state($state,'',false); ?>
           </a>
         </li>
       <?php } ?>

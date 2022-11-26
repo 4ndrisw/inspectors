@@ -38,7 +38,7 @@ function inspectors_add_dashboard_widget($widgets)
         'container' => 'left-8',
     ];
     $widgets[] = [
-        'path'      => 'inspectors/widgets/project_not_inspectord',
+        'path'      => 'inspectors/widgets/program_not_scheduled',
         'container' => 'left-8',
     ];
     */
@@ -110,6 +110,17 @@ function inspectors_migration_tables_to_replace_old_links($tables)
     return $tables;
 }
 
+function inspectors($permissions){
+        $item = array(
+            'id'         => 8,
+            'name'       => _l('inspectors'),
+            'short_name' => 'inspectors',
+        );
+        $permissions[] = $item;
+      return $permissions;
+
+}
+
 function inspectors_permissions()
 {
     $capabilities = [];
@@ -118,6 +129,7 @@ function inspectors_permissions()
             'view'   => _l('permission_view') . '(' . _l('permission_global') . ')',
             'create' => _l('permission_create'),
             'edit'   => _l('permission_edit'),
+            'edit_own'   => _l('permission_edit_own'),
             'delete' => _l('permission_delete'),
     ];
 
@@ -166,6 +178,7 @@ function inspectors_module_init_menu_items()
             'name'       => _l('inspector'),
             'url'        => 'inspectors',
             'permission' => 'inspectors',
+            'icon'     => 'fa-solid fa-building',
             'position'   => 57,
             ]);
 
@@ -173,7 +186,7 @@ function inspectors_module_init_menu_items()
         $CI->app_menu->add_sidebar_menu_item('inspectors', [
                 'slug'     => 'inspectors-tracking',
                 'name'     => _l('inspectors'),
-                'icon'     => 'fa fa-calendar',
+                'icon'     => 'fa-solid fa-building',
                 'href'     => admin_url('inspectors'),
                 'position' => 12,
         ]);
@@ -190,11 +203,12 @@ function module_inspectors_action_links($actions)
 function inspectors_clients_area_menu_items()
 {   
     // Show menu item only if client is logged in
-    if (is_client_logged_in()) {
+    if (is_client_logged_in() && has_contact_permission('inspectors')) {
         add_theme_menu_item('inspectors', [
                     'name'     => _l('inspectors'),
                     'href'     => site_url('inspectors/list'),
                     'position' => 15,
+                    'icon'     => 'fa-solid fa-building',
         ]);
     }
 }
@@ -211,6 +225,7 @@ function inspectors_settings_tab()
         //'view'     => module_views_path(INSPECTORS_MODULE_NAME, 'admin/settings/includes/inspectors'),
         'view'     => 'inspectors/inspectors_settings',
         'position' => 51,
+        'icon'     => 'fa-solid fa-building',
     ]);
 }
 
@@ -221,4 +236,7 @@ if(($CI->uri->segment(1)=='admin' && $CI->uri->segment(2)=='inspectors') || $CI-
     $CI->app_scripts->add(INSPECTORS_MODULE_NAME.'-js', base_url('modules/'.INSPECTORS_MODULE_NAME.'/assets/js/'.INSPECTORS_MODULE_NAME.'.js'));
 }
 
+if(($CI->uri->segment(1)=='admin' && $CI->uri->segment(2)=='staff') && $CI->uri->segment(3)=='edit_provile'){
+    $CI->app_css->add(INSPECTORS_MODULE_NAME.'-css', base_url('modules/'.INSPECTORS_MODULE_NAME.'/assets/css/'.INSPECTORS_MODULE_NAME.'.css'));
+}
 

@@ -4,7 +4,7 @@
     <div class="content">
         <?php if (($staff_p->staffid == get_staff_user_id() || is_admin()) && !$this->input->get('notifications')) { ?>
         <div class="mbot30">
-            <?php $this->load->view('admin/staff/stats'); ?>
+            <?php $this->load->view('admin/inspectors/staff/stats'); ?>
         </div>
         <?php } ?>
         <div class="row">
@@ -72,27 +72,8 @@
                                 </div>
                             </div>
                             <div class="tw-space-x-0.5">
-                                <?php if (!empty($staff_p->facebook)) { ?>
-                                <a href="<?php echo html_escape($staff_p->facebook); ?>" target="_blank"
-                                    class="btn btn-default btn-icon">
-                                    <i class="fa-brands fa-facebook-f"></i>
-                                </a>
-                                <?php } ?>
-                                <?php if (!empty($staff_p->linkedin)) { ?>
-                                <a href="<?php echo html_escape($staff_p->linkedin); ?>"
-                                    class="btn btn-default btn-icon">
-                                    <i class="fa-brands fa-linkedin-in"></i>
-                                </a>
-                                <?php } ?>
-                                <?php if (!empty($staff_p->skype)) { ?>
-                                <a href="skype:<?php echo html_escape($staff_p->skype); ?>" data-toggle="tooltip"
-                                    title="<?php echo html_escape($staff_p->skype); ?>" target="_blank"
-                                    class="btn btn-default btn-icon">
-                                    <i class="fa-brands fa-skype"></i>
-                                </a>
-                                <?php } ?>
                                 <?php if (has_permission('staff', '', 'edit') && has_permission('staff', '', 'view')) { ?>
-                                <a href="<?php echo admin_url('staff/member/' . $staff_p->staffid); ?>"
+                                <a href="<?php echo admin_url('inspectors/staff/member/' . $staff_p->staffid); ?>"
                                     class="btn btn-default btn-icon">
                                     <i class="fa fa-pencil-square"></i>
                                 </a>
@@ -102,22 +83,22 @@
 
                         <?php if (($staff_p->staffid == get_staff_user_id() || is_admin()) && !$this->input->get('notifications')) { ?>
                         <h4 class="tw-mt-4 tw-font-semibold tw-text-lg tw-text-neutral-700">
-                            <?php echo _l('projects'); ?>
+                            <?php echo _l('programs'); ?>
                         </h4>
 
                         <div class="panel-table-full">
-                            <div class="_filters _hidden_inputs hidden staff_projects_filter">
+                            <div class="_filters _hidden_inputs hidden staff_programs_filter">
                                 <?php echo form_hidden('staff_id', $staff_p->staffid); ?>
                             </div>
                             <?php render_datatable([
-          _l('project_name'),
-          _l('project_start_date'),
-          _l('project_deadline'),
-          _l('project_status'),
-          ], 'staff-projects', [], [
-              'data-last-order-identifier' => 'my-projects',
-              'data-default-order'         => get_table_last_order('my-projects'),
-          ]); ?>
+                                  _l('program_name'),
+                                  _l('program_start_date'),
+                                  _l('program_deadline'),
+                                  _l('program_state'),
+                                  ], 'staff-programs', [], [
+                                      'data-last-order-identifier' => 'my-programs',
+                                      'data-default-order'         => get_table_last_order('my-programs'),
+                                  ]); ?>
                         </div>
                         <?php } ?>
                     </div>
@@ -153,7 +134,7 @@ $(function() {
         $('.loader').on('click', function(e) {
             e.preventDefault();
             if (page <= total_pages) {
-                $.post(admin_url + 'staff/notifications', {
+                $.post(admin_url + 'inspectors/staff/notifications', {
                     page: page
                 }).done(function(response) {
                     response = JSON.parse(response);

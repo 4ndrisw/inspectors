@@ -1,6 +1,26 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 
+function get_inspector_name_by_id($inspector_id){
+    $CI = &get_instance();
+        $CI->db->select(['company']);
+        $CI->db->where('userid', $inspector_id);
+    return $CI->db->get(db_prefix() . 'clients')->row('company');
+
+}
+
+function get_inspector_staff_data($userid='')
+{
+    $CI = &get_instance();
+        $CI->db->select(['staffid','firstname', 'lastname']);
+        $CI->db->where('client_type', 'inspector');
+    /*
+    if ($userid) {
+        $CI->db->where('userid', $userid);
+    }
+    */
+    return $CI->db->get(db_prefix() . 'staff')->result_array();
+}
 
 function inspectors_notification()
 {
@@ -39,19 +59,75 @@ function inspectors_notification()
  * @param  mixed $itemid
  * @return array
  */
-function get_inspector_item_taxes($itemid)
+function get_inspectors_staff_data($staffid)
 {
-    $CI = &get_instance();
-    $CI->db->where('itemid', $itemid);
-    $CI->db->where('rel_type', 'inspector');
-    $taxes = $CI->db->get(db_prefix() . 'item_tax')->result_array();
-    $i     = 0;
-    foreach ($taxes as $tax) {
-        $taxes[$i]['taxname'] = $tax['taxname'] . '|' . $tax['taxrate'];
-        $i++;
+    $CI = & get_instance();
+    $q  = '';
+    if ($CI->input->post('q')) {
+        $q = $CI->input->post('q');
+        $q = trim($q);
+    }
+    $q = '';
+    $data = [];
+    //if ($type == 'inspector' || $type == 'inspectors') {
+        $where_clients = ''; 
+        if ($q) {
+            //$where_clients .= '(company LIKE "%' . $CI->db->escape_like_str($q) . '%" ESCAPE \'!\' OR CONCAT(firstname, " ", lastname) LIKE "%' . $CI->db->escape_like_str($q) . '%" ESCAPE \'!\' OR email LIKE "%' . $CI->db->escape_like_str($q) . '%" ESCAPE \'!\') AND ' . db_prefix() . 'clients.active = 1';
+            $where_clients .= '(CONCAT(firstname, " ", lastname) LIKE "%' . $CI->db->escape_like_str($q) . '%" ESCAPE \'!\' OR email LIKE "%' . $CI->db->escape_like_str($q) . '%" ESCAPE \'!\') AND ' . db_prefix() . 'staff.active = 1';
+            $where_clients .= ' AND client_types = 1';
+        }
+    //}
+
+    $data = $CI->staff_model->get($staffid, $where_clients);
+    return $data;
+}
+
+
+/**
+ * Ger relation values eq invoice number or inspector_staff name etc based on passed relation parsed results
+ * from function get_customer_data
+ * $relation can be object or array
+ * @param  mixed $relation
+ * @param  string $type
+ * @return mixed
+ */
+function get_inspector_values($relation, $type)
+{
+    if ($relation == '') {
+        return [
+            'name'      => '',
+            'id'        => '',
+            'link'      => '',
+            'addedfrom' => 0,
+            'subtext'   => '',
+            ];
     }
 
-    return $taxes;
+    $addedfrom = 0;
+    $name      = '';
+    $id        = '';
+    $link      = '';
+    $subtext   = '';
+
+    //if ($type == 'staff') {
+        if (is_array($relation)) {
+            $id   = $relation['staffid'];
+            $name = $relation['firstname'] . ' ' . $relation['lastname'];
+        } else {
+            $id   = $relation->staffid;
+            $name = $relation->firstname . ' ' . $relation->lastname;
+        }
+        $link = admin_url('profile/' . $id);
+    //}
+
+    return hooks()->apply_filters('relation_values', [
+        'id'        => $id,
+        'name'      => $name,
+        'link'      => $link,
+        'addedfrom' => $addedfrom,
+        'subtext'   => $subtext,
+        'type'      => $type,
+        ]);
 }
 
 /**
@@ -81,7 +157,7 @@ function get_inspector_shortlink($inspector)
     if ($short_link) {
         $CI = &get_instance();
         $CI->db->where('id', $inspector->id);
-        $CI->db->update(db_prefix() . 'inspectors', [
+        $CI->db->update(db_prefix() . 'clients', [
             'short_link' => $short_link
         ]);
         return $short_link;
@@ -137,91 +213,91 @@ function is_inspectors_email_expiry_reminder_enabled()
  */
 function is_inspectors_expiry_reminders_enabled()
 {
-    return is_inspectors_email_expiry_reminder_enabled() || is_sms_trigger_active(SMS_TRIGGER_SCHEDULE_EXP_REMINDER);
+    return is_inspectors_email_expiry_reminder_enabled() || is_sms_trigger_active(SMS_TRIGGER_INSPECTOR_EXP_REMINDER);
 }
 
 /**
- * Return RGBa inspector status color for PDF documents
- * @param  mixed $status_id current inspector status
+ * Return RGBa inspector state color for PDF documents
+ * @param  mixed $state_id current inspector state
  * @return string
  */
-function inspector_status_color_pdf($status_id)
+function inspector_state_color_pdf($state_id)
 {
-    if ($status_id == 1) {
-        $statusColor = '119, 119, 119';
-    } elseif ($status_id == 2) {
+    if ($state_id == 1) {
+        $stateColor = '119, 119, 119';
+    } elseif ($state_id == 2) {
         // Sent
-        $statusColor = '3, 169, 244';
-    } elseif ($status_id == 3) {
+        $stateColor = '3, 169, 244';
+    } elseif ($state_id == 3) {
         //Declines
-        $statusColor = '252, 45, 66';
-    } elseif ($status_id == 4) {
+        $stateColor = '252, 45, 66';
+    } elseif ($state_id == 4) {
         //Accepted
-        $statusColor = '0, 191, 54';
+        $stateColor = '0, 191, 54';
     } else {
         // Expired
-        $statusColor = '255, 111, 0';
+        $stateColor = '255, 111, 0';
     }
 
-    return hooks()->apply_filters('inspector_status_pdf_color', $statusColor, $status_id);
+    return hooks()->apply_filters('inspector_state_pdf_color', $stateColor, $state_id);
 }
 
 /**
- * Format inspector status
- * @param  integer  $status
+ * Format inspector state
+ * @param  integer  $state
  * @param  string  $classes additional classes
  * @param  boolean $label   To include in html label or not
  * @return mixed
  */
-function format_inspector_status($status, $classes = '', $label = true)
+function format_inspector_state($state, $classes = '', $label = true)
 {
-    $id          = $status;
-    $label_class = inspector_status_color_class($status);
-    $status      = inspector_status_by_id($status);
+    $id          = $state;
+    $label_class = inspector_state_color_class($state);
+    $state      = inspector_state_by_id($state);
     if ($label == true) {
-        return '<span class="label label-' . $label_class . ' ' . $classes . ' s-status inspector-status-' . $id . ' inspector-status-' . $label_class . '">' . $status . '</span>';
+        return '<span class="label label-' . $label_class . ' ' . $classes . ' s-state inspector-state-' . $id . ' inspector-state-' . $label_class . '">' . $state . '</span>';
     }
 
-    return $status;
+    return $state;
 }
 
 /**
- * Return inspector status translated by passed status id
- * @param  mixed $id inspector status id
+ * Return inspector state translated by passed state id
+ * @param  mixed $id inspector state id
  * @return string
  */
-function inspector_status_by_id($id)
+function inspector_state_by_id($id)
 {
-    $status = '';
+    $state = '';
     if ($id == 1) {
-        $status = _l('inspector_status_draft');
+        $state = _l('inspector_state_draft');
     } elseif ($id == 2) {
-        $status = _l('inspector_status_sent');
+        $state = _l('inspector_state_sent');
     } elseif ($id == 3) {
-        $status = _l('inspector_status_declined');
+        $state = _l('inspector_state_declined');
     } elseif ($id == 4) {
-        $status = _l('inspector_status_accepted');
+        $state = _l('inspector_state_accepted');
     } elseif ($id == 5) {
-        // status 5
-        $status = _l('inspector_status_expired');
+        // state 5
+        $state = _l('inspector_state_expired');
     } else {
         if (!is_numeric($id)) {
             if ($id == 'not_sent') {
-                $status = _l('not_sent_indicator');
+                $state = _l('not_sent_indicator');
             }
         }
     }
 
-    return hooks()->apply_filters('inspector_status_label', $status, $id);
+    return hooks()->apply_filters('inspector_state_label', $state, $id);
 }
 
 /**
- * Return inspector status color class based on twitter bootstrap
+ * Return inspector state color class based on twitter bootstrap
  * @param  mixed  $id
  * @param  boolean $replace_default_by_muted
  * @return string
  */
-function inspector_status_color_class($id, $replace_default_by_muted = false)
+function inspector_state_color_class($id, $replace_default_by_muted = false)
 {
     $class = '';
     if ($id == 1) {
@@ -236,7 +312,7 @@ function inspector_status_color_class($id, $replace_default_by_muted = false)
     } elseif ($id == 4) {
         $class = 'success';
     } elseif ($id == 5) {
-        // status 5
+        // state 5
         $class = 'warning';
     } else {
         if (!is_numeric($id)) {
@@ -249,7 +325,7 @@ function inspector_status_color_class($id, $replace_default_by_muted = false)
         }
     }
 
-    return hooks()->apply_filters('inspector_status_color_class', $class, $id);
+    return hooks()->apply_filters('inspector_state_color_class', $class, $id);
 }
 
 /**
@@ -260,9 +336,9 @@ function inspector_status_color_class($id, $replace_default_by_muted = false)
 function is_last_inspector($id)
 {
     $CI = &get_instance();
-    $CI->db->select('id')->from(db_prefix() . 'inspectors')->order_by('id', 'desc')->limit(1);
+    $CI->db->select('userid')->from(db_prefix() . 'clients')->order_by('userid', 'desc')->limit(1);
     $query            = $CI->db->get();
-    $last_inspector_id = $query->row()->id;
+    $last_inspector_id = $query->row()->userid;
     if ($last_inspector_id == $id) {
         return true;
     }
@@ -322,17 +398,17 @@ function inspector_number_format($number, $format, $applied_prefix, $date)
 }
 
 /**
- * Calculate inspectors percent by status
- * @param  mixed $status          inspector status
+ * Calculate inspectors percent by state
+ * @param  mixed $state          inspector state
  * @return array
  */
-function get_inspectors_percent_by_status($status, $project_id = null)
+function get_inspectors_percent_by_state($state, $inspector_staff_id = null)
 {
     $has_permission_view = has_permission('inspectors', '', 'view');
     $where               = '';
 
-    if (isset($project_id)) {
-        $where .= 'project_id=' . get_instance()->db->escape_str($project_id) . ' AND ';
+    if (isset($inspector_staff_id)) {
+        $where .= 'inspector_staff_id=' . get_instance()->db->escape_str($inspector_staff_id) . ' AND ';
     }
     if (!$has_permission_view) {
         $where .= get_inspectors_where_sql_for_staff(get_staff_user_id());
@@ -344,25 +420,25 @@ function get_inspectors_percent_by_status($status, $project_id = null)
         $where = substr_replace($where, '', -3);
     }
 
-    $total_inspectors = total_rows(db_prefix() . 'inspectors', $where);
+    $total_inspectors = total_rows(db_prefix() . 'clients', $where);
 
     $data            = [];
-    $total_by_status = 0;
+    $total_by_state = 0;
 
-    if (!is_numeric($status)) {
-        if ($status == 'not_sent') {
-            $total_by_status = total_rows(db_prefix() . 'inspectors', 'sent=0 AND status NOT IN(2,3,4)' . ($where != '' ? ' AND (' . $where . ')' : ''));
+    if (!is_numeric($state)) {
+        if ($state == 'not_sent') {
+            $total_by_state = total_rows(db_prefix() . 'clients', 'sent=0 AND state NOT IN(2,3,4)' . ($where != '' ? ' AND (' . $where . ')' : ''));
         }
     } else {
-        $whereByStatus = 'status=' . $status;
+        $whereByStatus = 'state=' . $state;
         if ($where != '') {
             $whereByStatus .= ' AND (' . $where . ')';
         }
-        $total_by_status = total_rows(db_prefix() . 'inspectors', $whereByStatus);
+        $total_by_state = total_rows(db_prefix() . 'clients', $whereByStatus);
     }
 
-    $percent                 = ($total_inspectors > 0 ? number_format(($total_by_status * 100) / $total_inspectors, 2) : 0);
-    $data['total_by_status'] = $total_by_status;
+    $percent                 = ($total_inspectors > 0 ? number_format(($total_by_state * 100) / $total_inspectors, 2) : 0);
+    $data['total_by_state'] = $total_by_state;
     $data['percent']         = $percent;
     $data['total']           = $total_inspectors;
 
@@ -401,7 +477,7 @@ function staff_has_assigned_inspectors($staff_id = '')
     if (is_numeric($cache)) {
         $result = $cache;
     } else {
-        $result = total_rows(db_prefix() . 'inspectors', ['assigned' => $staff_id]);
+        $result = total_rows(db_prefix() . 'clients', ['assigned' => $staff_id]);
         $CI->app_object_cache->add('staff-total-assigned-inspectors-' . $staff_id, $result);
     }
 
@@ -442,9 +518,9 @@ function user_can_view_inspector($id, $staff_id = false)
         return true;
     }
     
-    $CI->db->select('id, addedfrom, assigned');
-    $CI->db->from(db_prefix() . 'inspectors');
-    $CI->db->where('id', $id);
+    $CI->db->select('userid, addedfrom, assigned');
+    $CI->db->from(db_prefix() . 'clients');
+    $CI->db->where('userid', $id);
     $inspector = $CI->db->get()->row();
 
     if ((has_permission('inspectors', $staff_id, 'view_own') && $inspector->addedfrom == $staff_id)
@@ -466,20 +542,7 @@ function user_can_view_inspector($id, $staff_id = false)
  */
 function inspector_pdf($inspector, $tag = '')
 {
-    return app_pdf('inspector',  module_libs_path(SCHEDULES_MODULE_NAME) . 'pdf/Inspector_pdf', $inspector, $tag);
-}
-
-
-/**
- * Prepare general inspector pdf
- * @since  Version 1.0.2
- * @param  object $inspector inspector as object with all necessary fields
- * @param  string $tag tag for bulk pdf exporter
- * @return mixed object
- */
-function inspector_office_pdf($inspector, $tag = '')
-{
-    return app_pdf('inspector',  module_libs_path(SCHEDULES_MODULE_NAME) . 'pdf/Inspector_office_pdf', $inspector, $tag);
+    return app_pdf('inspector',  module_libs_path(INSPECTORS_MODULE_NAME) . 'pdf/Inspector_pdf', $inspector, $tag);
 }
 
 
@@ -494,7 +557,7 @@ function inspector_office_pdf($inspector, $tag = '')
  */
 function get_inspector_items_table_data($transaction, $type, $for = 'html', $admin_preview = false)
 {
-    include_once(module_libs_path(SCHEDULES_MODULE_NAME) . 'Inspector_items_table.php');
+    include_once(module_libs_path(INSPECTORS_MODULE_NAME) . 'Inspector_items_table.php');
 
     $class = new Inspector_items_table($transaction, $type, $for, $admin_preview);
 
@@ -535,44 +598,6 @@ function add_new_inspector_item_post($item, $rel_id, $rel_type)
 
     return $id;
 }
-
-/**
- * Update inspector item from $_POST 
- * @param  mixed $item_id item id to update
- * @param  array $data    item $_POST data
- * @param  string $field   field is require to be passed for long_description,rate,item_order to do some additional checkings
- * @return boolean
- */
-function update_inspector_item_post($item_id, $data, $field = '')
-{
-    $update = [];
-    if ($field !== '') {
-        if ($field == 'long_description') {
-            $update[$field] = nl2br($data[$field]);
-        } elseif ($field == 'rate') {
-            $update[$field] = number_format($data[$field], get_decimal_places(), '.', '');
-        } elseif ($field == 'item_order') {
-            $update[$field] = $data['order'];
-        } else {
-            $update[$field] = $data[$field];
-        }
-    } else {
-        $update = [
-            'item_order'       => $data['order'],
-            'description'      => $data['description'],
-            'long_description' => nl2br($data['long_description']),
-            'qty'              => $data['qty'],
-            'unit'             => $data['unit'],
-        ];
-    }
-
-    $CI = &get_instance();
-    $CI->db->where('id', $item_id);
-    $CI->db->update(db_prefix() . 'itemable', $update);
-
-    return $CI->db->affected_rows() > 0 ? true : false;
-}
-
 
 /**
  * Prepares email template preview $data for the view
@@ -617,7 +642,7 @@ function inspector_mail_preview_data($template, $customer_id_or_email, $mailClas
 function get_inspector_upload_path($type=NULL)
 {
    $type = 'inspector';
-   $path = SCHEDULE_ATTACHMENTS_FOLDER;
+   $path = INSPECTOR_ATTACHMENTS_FOLDER;
    
     return hooks()->apply_filters('get_upload_path_by_type', $path, $type);
 }
@@ -663,7 +688,7 @@ function _format_data_inspector_feature($data)
         $data['data']['adminnote'] = nl2br($data['data']['adminnote']);
     }
 
-    foreach (['country', 'billing_country', 'shipping_country', 'project_id', 'assigned'] as $should_be_zero) {
+    foreach (['country', 'billing_country', 'shipping_country', 'inspector_staff_id', 'assigned'] as $should_be_zero) {
         if (isset($data['data'][$should_be_zero]) && $data['data'][$should_be_zero] == '') {
             $data['data'][$should_be_zero] = 0;
         }
@@ -685,12 +710,12 @@ if (!function_exists('format_inspector_info')) {
         $format = get_option('company_info_format');
         $countryCode = '';
         $countryName = '';
-
+        
         if ($country = get_country($inspector->country)) {
             $countryCode = $country->iso2;
             $countryName = $country->short_name;
         }
-
+        
         $inspectorTo = '<b>' . $inspector->company . '</b>';
 
         if ($for == 'admin') {
@@ -764,36 +789,69 @@ function _get_inspector_feature_unused_names()
 }
 
 /**
- * When item is removed eq from invoice will be stored in removed_items in $_POST
- * With foreach loop this function will remove the item from database and it's taxes
- * @param  mixed $id       item id to remove
- * @param  string $rel_type item relation eq. invoice, inspector
- * @return boolena
- */
-function handle_removed_inspector_item_post($id, $rel_type)
-{
-    $CI = &get_instance();
-
-    $CI->db->where('id', $id);
-    $CI->db->where('rel_type', $rel_type);
-    $CI->db->delete(db_prefix() . 'itemable');
-    if ($CI->db->affected_rows() > 0) {
-        return true;
-    }
-
-    return false;
-}
-
-/**
- * Check if customer has project assigned
+ * Check if customer has inspector_staff assigned
  * @param  mixed $customer_id customer id to check
  * @return boolean
  */
-function project_has_inspectors($project_id)
+function inspector_staff_has_inspectors($inspector_staff_id)
 {
-    $totalProjectsInspectord = total_rows(db_prefix() . 'inspectors', 'project_id=' . get_instance()->db->escape_str($project_id));
+    $totalProgramsInspectord = total_rows(db_prefix() . 'clients', 'inspector_staff_id=' . get_instance()->db->escape_str($inspector_staff_id));
 
-    return ($totalProjectsInspectord > 0 ? true : false);
+    return ($totalProgramsInspectord > 0 ? true : false);
 }
 
 
+function is_staff_related_to_inspector($client_id){
+    $CI = &get_instance();
+    $CI->db->where('staffid', get_staff_user_id());
+    $CI->db->where('client_id', $client_id);
+    $result = $CI->db->get(db_prefix() . 'staff')->result();
+    if (count($result) > 0) {
+        return true;
+    }
+
+    return false;    
+}
+
+
+
+
+function get_inspector_staff_data_ajax($searchTerm = '')
+{
+    $CI = &get_instance();
+    
+    $CI->db->select('staffid, CONCAT(firstname, '.', lastname) AS name', FALSE);
+    $CI->db->from( db_prefix() .'staff');
+    $CI->db->where('client_type', 'inspector');    
+    if($searchTerm){
+        $CI->db->like('name', $searchTerm);
+    }
+    $CI->db->order_by('name', 'ASC');
+
+    return $CI->db->get()->result();
+}
+
+
+/**
+ * Get inspector_staff name by passed id
+ * @param  mixed $id
+ * @return string
+ */
+function get_inspector_staff_name_by_id($id)
+{
+    $CI      = & get_instance();
+    $inspector_staff = $CI->app_object_cache->get('inspector-staff-name-data-' . $id);
+
+    if (!$inspector_staff) {
+        $CI->db->select('name');
+        $CI->db->where('id', $id);
+        $inspector_staff = $CI->db->get(db_prefix() . 'inspector_staffs')->row();
+        $CI->app_object_cache->add('inspector_staff-name-data-' . $id, $inspector_staff);
+    }
+
+    if ($inspector_staff) {
+        return $inspector_staff->name;
+    }
+
+    return '';
+}

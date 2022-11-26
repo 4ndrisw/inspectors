@@ -2,7 +2,7 @@
 <div class="panel_s accounting-template inspector">
    <div class="panel-body">
       <?php if(isset($inspector)){ ?>
-      <?php echo format_inspector_status($inspector->active); ?>
+      <?php echo format_inspector_state($inspector->active); ?>
       <hr class="hr-panel-heading" />
       <?php } ?>
       <div class="row">
@@ -17,7 +17,7 @@
                  <div class="col-md-12">
                     <?php $value = (isset($inspector) ? $inspector->company : ''); ?>
                     <?php $attrs = (isset($inspector) ? array() : array('autofocus' => true)); ?>
-                    <?php echo render_input('company', 'pjk3', $value, 'text', $attrs); ?>
+                    <?php echo render_input('company', 'inspector', $value, 'text', $attrs); ?>
                     <div id="company_exists_info" class="hide"></div>
                   </div>
                  </div>
@@ -44,14 +44,14 @@
                  if(isset($inspector)){
                    $__number = $inspector->number;
                    $prefix = $inspector->prefix;
-                   $prefix = '<span id="prefix">'. $prefix . '</span><span id="prefix_year">' . date('Y',strtotime($inspector->datecreated)).'</span>/';
+                   $prefix = '<span id="prefix">'. $prefix . '</span><span id="prefix_year">' . date('Y',strtotime($inspector->dateactivated)).'</span>/';
                  } else {
                    $__number = $next_inspector_number;
                    $prefix = $prefix.'<span id="prefix_year">'.date('Y').'</span>/';
                  }
                } else if($format == 3) {
                   if(isset($inspector)){
-                   $yy = date('y',strtotime($inspector->datecreatedcreated));
+                   $yy = date('y',strtotime($inspector->dateactivated));
                    $__number = $inspector->number;
                    $prefix = '<span id="prefix">'. $inspector->prefix . '</span>';
                  } else {
@@ -60,8 +60,8 @@
                 }
                } else if($format == 4) {
                   if(isset($inspector)){
-                   $yyyy = date('Y',strtotime($inspector->datecreated));
-                   $mm = date('m',strtotime($inspector->datecreated));
+                   $yyyy = date('Y',strtotime($inspector->dateactivated));
+                   $mm = date('m',strtotime($inspector->dateactivated));
                    $__number = $inspector->number;
                    $prefix = '<span id="prefix">'. $inspector->prefix . '</span>';
                  } else {
@@ -70,7 +70,7 @@
                   $__number = $next_inspector_number;
                 }
                }
-
+               
                $_inspector_number = str_pad($__number, get_option('number_padding_prefixes'), '0', STR_PAD_LEFT);
                $isedit = isset($inspector) ? 'true' : 'false';
                $data_original_number = isset($inspector) ? $inspector->number : 'false';
@@ -101,34 +101,27 @@
             </div>
 
             <div class="row">
-               <div class="col-md-6">
-                 <?php $value = (isset($inspector) ? $inspector->siup : ''); ?>
-                 <?php echo render_input('siup','siup',$value); ?>
-               </div>
-               <div class="col-md-6">
-                 <?php $value = (isset($inspector) ? $inspector->vat : ''); ?>
-                 <?php echo render_input('vat','vat',$value); ?>
-               </div>
-            </div>
-            <div class="row">
-               <div class="col-md-6">
-                  <?php if (get_option('pjk3_use_bpjs_kesehatan_field') == 1) {
-                     $value = (isset($inspector) ? $inspector->bpjs_kesehatan : '');
-                     echo render_input('bpjs_kesehatan', 'pjk3_bpjs_kesehatan', $value);
-                  } ?>
-               </div>
-               <div class="col-md-6">
-                  <?php if (get_option('pjk3_use_bpjs_ketenagakerjaan_field') == 1) {
-                     $value = (isset($inspector) ? $inspector->bpjs_ketenagakerjaan : '');
-                     echo render_input('bpjs_ketenagakerjaan', 'pjk3_bpjs_ketenagakerjaan', $value);
-                  } ?>
+               <div class="col-md-12">
+                  <?php
+                     $i = 0;
+                     $selected = '';
+                     foreach($institutions_sql as $institution){
+                      if(isset($inspector)){
+                        if($inspector->institution_id == $institution['userid']) {
+                          $selected = $institution['userid'];
+                        }
+                      }
+                      $i++;
+                     }
+                     echo render_select('institution_id',$institutions_sql,array('userid',array('company')),'institution',$selected);
+                  ?>
                </div>
             </div>
 
             <div class="row">
                <div class="col-md-6">
-                  <?php $value = (isset($inspector) ? $inspector->phonenumber : ''); ?>
-                  <?php echo render_input('phonenumber', 'client_phonenumber', $value); ?>
+                  <?php $value = (isset($inspector) ? $inspector->phone : ''); ?>
+                  <?php echo render_input('phone', 'client_phonenumber', $value); ?>
                </div>
                <div class="col-md-6">
                   <?php if (get_option('disable_language') == 0) { ?>
@@ -154,31 +147,13 @@
              </div>
 
             <div class="row">
-              <div class="col-md-6">
-                 <div class="form-group select-placeholder">
-                    <?php if ((isset($inspector) && empty($inspector->website)) || !isset($inspector)) {
-                     $value = (isset($inspector) ? $inspector->website : '');
-                     echo render_input('website', 'client_website', $value);
-                    } else { ?>
-                     <div class="form-group">
-                        <label for="website"><?php echo _l('client_website'); ?></label>
-                        <div class="input-group">
-                           <input type="text" name="website" id="website" value="<?php echo $inspector->website; ?>" class="form-control">
-                           <div class="input-group-addon">
-                              <span><a href="<?php echo maybe_add_http($inspector->website); ?>" target="_blank" tabindex="-1"><i class="fa fa-globe"></i></a></span>
-                           </div>
-                        </div>
-                     </div>
-                  <?php }?>
-                 </div>
-              </div>
 
               <div class="col-md-6">
                  <div class="form-group select-placeholder">
-                    <label class="control-label"><?php echo _l('inspector_status'); ?></label>
-                    <select class="selectpicker display-block mbot15" name="status" data-width="100%" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
-                       <?php foreach($inspector_statuses as $status){ ?>
-                       <option value="<?php echo $status; ?>" <?php if(isset($inspector) && $inspector->status == $status){echo 'selected';} ?>><?php echo format_inspector_status($status,'',false); ?></option>
+                    <label class="control-label"><?php echo _l('inspector_state'); ?></label>
+                    <select class="selectpicker display-block mbot15" name="state" data-width="100%" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
+                       <?php foreach($inspector_states as $state){ ?>
+                       <option value="<?php echo $state; ?>" <?php if(isset($inspector) && $inspector->state == $state){echo 'selected';} ?>><?php echo format_inspector_state($state,'',false); ?></option>
                        <?php } ?>
                     </select>
                  </div>

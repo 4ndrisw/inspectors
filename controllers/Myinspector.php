@@ -44,7 +44,7 @@ class Myinspector extends ClientsController
 
             // Only decline and accept allowed
             if ($action == 4 || $action == 3) {
-                $success = $this->inspectors_model->mark_action_status($action, $id, true);
+                $success = $this->inspectors_model->mark_action_state($action, $id, true);
 
                 $redURL   = $this->uri->uri_string();
                 $accepted = false;
@@ -171,7 +171,7 @@ class Myinspector extends ClientsController
 
             // Only decline and accept allowed
             if ($action == 4 || $action == 3) {
-                $success = $this->inspectors_model->mark_action_status($action, $id, true);
+                $success = $this->inspectors_model->mark_action_state($action, $id, true);
 
                 $redURL   = $this->uri->uri_string();
                 $accepted = false;

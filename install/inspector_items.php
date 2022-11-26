@@ -5,7 +5,7 @@ if (!$CI->db->table_exists(db_prefix() . 'inspector_items')) {
     $CI->db->query('CREATE TABLE `' . db_prefix() . "inspector_items` (
   `id` int(11) NOT NULL,
   `inspector_id` int(11) DEFAULT NULL,
-  `project_id` int(11) NOT NULL,
+  `program_id` int(11) NOT NULL,
   `task_id` int(11) NOT NULL,
   `equipment_name` varchar(60) DEFAULT NULL,
   `nomor_suket` varchar(30) DEFAULT NULL,
@@ -17,7 +17,7 @@ if (!$CI->db->table_exists(db_prefix() . 'inspector_items')) {
     $CI->db->query('ALTER TABLE `' . db_prefix() . 'inspector_items`
       ADD PRIMARY KEY (`id`),
       ADD UNIQUE KEY `inspector_id_task_id` (`inspector_id`,`task_id`) USING BTREE,
-      ADD KEY `project_id` (`project_id`),
+      ADD KEY `program_id` (`program_id`),
       ADD KEY `task_id` (`task_id`),
       ADD KEY `inspector_id` (`inspector_id`)
     ;

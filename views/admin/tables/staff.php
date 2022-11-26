@@ -20,7 +20,12 @@ $join         = ['LEFT JOIN ' . db_prefix() . 'roles ON ' . db_prefix() . 'roles
 $i            = 0;
             // Fix for big queries. Some hosting have max_join_limit
 //$where = ['client_id' => $inspector->userid];
-$where = ['AND client_id=' . $this->ci->db->escape_str($client_id)];
+$where = [];
+//$where = ['AND client_id=' . $this->ci->db->escape_str($client_id)];
+//$where = ['AND client_type='. '"inspector"'];
+
+array_push($where, 'AND client_id=' . $this->ci->db->escape_str($client_id));
+array_push($where, 'AND client_type='. '"inspector"');
 
 //$where = hooks()->apply_filters('inspectors_staff_table_sql_where', []);
 
@@ -54,7 +59,7 @@ foreach ($rResult as $aRow) {
             }
 
             $_data = '<div class="onoffswitch">
-                <input type="checkbox" ' . (($aRow['staffid'] == get_staff_user_id() || (is_admin($aRow['staffid']) || !has_permission('pengguna', '', 'edit')) && !is_admin()) ? 'disabled' : '') . ' data-switch-url="' . admin_url() . 'staff/change_staff_status" name="onoffswitch" class="onoffswitch-checkbox" id="c_' . $aRow['staffid'] . '" data-id="' . $aRow['staffid'] . '" ' . $checked . '>
+                <input type="checkbox" ' . (($aRow['staffid'] == get_staff_user_id() || (is_admin($aRow['staffid']) || !has_permission('pengguna', '', 'edit')) && !is_admin()) ? 'disabled' : '') . ' data-switch-url="' . admin_url() . 'staff/change_staff_state" name="onoffswitch" class="onoffswitch-checkbox" id="c_' . $aRow['staffid'] . '" data-id="' . $aRow['staffid'] . '" ' . $checked . '>
                 <label class="onoffswitch-label" for="c_' . $aRow['staffid'] . '"></label>
             </div>';
 

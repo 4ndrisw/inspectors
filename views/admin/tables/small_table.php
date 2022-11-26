@@ -14,7 +14,7 @@ $sTable       = db_prefix() . 'inspectors';
 
 $join = [
     'LEFT JOIN ' . db_prefix() . 'clients ON ' . db_prefix() . 'clients.userid = ' . db_prefix() . 'inspectors.clientid',
-    //'LEFT JOIN ' . db_prefix() . 'projects ON ' . db_prefix() . 'projects.id = ' . db_prefix() . 'inspectors.project_id',
+    //'LEFT JOIN ' . db_prefix() . 'programs ON ' . db_prefix() . 'programs.id = ' . db_prefix() . 'inspectors.program_id',
 ];
 
 $result = data_tables_init($aColumns, $sIndexColumn, $sTable, $join, [], ['id']);

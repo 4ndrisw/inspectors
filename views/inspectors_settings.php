@@ -31,7 +31,7 @@
       <hr />
       <?php render_yes_no_option('show_assigned_on_inspectors','show_assigned_on_inspectors'); ?>
       <hr />
-      <?php render_yes_no_option('show_project_on_inspector','show_project_on_inspector'); ?>
+      <?php render_yes_no_option('show_program_on_inspector','show_program_on_inspector'); ?>
       <hr />
       <?php echo render_select('settings[default_inspector_role]', $roles, ['roleid', 'name'], 'settings_general_default_inspector_role', get_option('default_inspector_role'), [], ['data-toggle' => 'tooltip', 'title' => 'settings_general_default_inspector_role_tooltip']); ?>
       <hr />
@@ -49,7 +49,7 @@
       echo render_select('settings[default_inspector_assigned]',$staff,array('staffid',array('firstname','lastname')),'default_inspector_assigned_string',$selected);
       ?>
       <hr />
-      <?php render_yes_no_option('exclude_inspector_from_client_area_with_draft_status','exclude_inspector_from_client_area_with_draft_status'); ?>
+      <?php render_yes_no_option('exclude_inspector_from_client_area_with_draft_state','exclude_inspector_from_client_area_with_draft_state'); ?>
       <hr />   
       <?php render_yes_no_option('inspector_accept_identity_confirmation','inspector_accept_identity_confirmation'); ?>
       <hr />
@@ -78,7 +78,7 @@
       </div>
       <div class="row">
          <div class="col-md-12">
-            <?php echo render_input('settings[inspectors_pipeline_limit]','pipeline_limit_status',get_option('inspectors_pipeline_limit')); ?>
+            <?php echo render_input('settings[inspectors_pipeline_limit]','pipeline_limit_state',get_option('inspectors_pipeline_limit')); ?>
          </div>
          <div class="col-md-7">
             <label for="default_proposals_pipeline_sort" class="control-label"><?php echo _l('default_pipeline_sort'); ?></label>

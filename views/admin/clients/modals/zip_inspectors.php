@@ -12,15 +12,15 @@
                 <div class="row">
                     <div class="col-md-12">
                         <div class="form-group">
-                            <label for="inspector_zip_status"><?php echo _l('client_zip_status'); ?></label>
+                            <label for="inspector_zip_state"><?php echo _l('client_zip_state'); ?></label>
                             <div class="radio radio-primary">
-                                <input type="radio" value="all" id="all" checked name="inspector_zip_status">
-                                <label for="all"><?php echo _l('client_zip_status_all'); ?></label>
+                                <input type="radio" value="all" id="all" checked name="inspector_zip_state">
+                                <label for="all"><?php echo _l('client_zip_state_all'); ?></label>
                             </div>
-                            <?php foreach($inspector_statuses as $status){ ?>
+                            <?php foreach($inspector_states as $state){ ?>
                             <div class="radio radio-primary">
-                                <input type="radio" value="<?php echo $status; ?>" id="est_<?php echo $status; ?>" name="inspector_zip_status">
-                                <label for="est_<?php echo $status; ?>"><?php echo format_inspector_status($status,'',false); ?></label>
+                                <input type="radio" value="<?php echo $state; ?>" id="est_<?php echo $state; ?>" name="inspector_zip_state">
+                                <label for="est_<?php echo $state; ?>"><?php echo format_inspector_state($state,'',false); ?></label>
                             </div>
                             <?php } ?>
                         </div>

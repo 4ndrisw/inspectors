@@ -1,7 +1,7 @@
 <?php
 
 defined('BASEPATH') or exit('No direct script access allowed');
-$is_pjk3=1;
+$is_inspector=1;
 
 $hasPermissionDelete = has_permission('customers', '', 'delete');
 
@@ -30,13 +30,6 @@ $join = [
     'LEFT JOIN '.db_prefix().'contacts ON '.db_prefix().'contacts.userid='.db_prefix().'clients.userid AND '.db_prefix().'contacts.is_primary=1',
 ];
 
-foreach ($custom_fields as $key => $field) {
-    $selectAs = (is_cf_date($field) ? 'date_picker_cvalue_' . $key : 'cvalue_' . $key);
-    array_push($customFieldsColumns, $selectAs);
-    array_push($aColumns, 'ctable_' . $key . '.value as ' . $selectAs);
-    array_push($join, 'LEFT JOIN '.db_prefix().'customfieldsvalues as ctable_' . $key . ' ON '.db_prefix().'clients.userid = ctable_' . $key . '.relid AND ctable_' . $key . '.fieldto="' . $field['fieldto'] . '" AND ctable_' . $key . '.fieldid=' . $field['id']);
-}
-
 $join = hooks()->apply_filters('customers_table_sql_join', $join);
 
 // Filter by custom groups
@@ -64,16 +57,17 @@ if (count($countryIds) > 0) {
 }
 
 
-// Filter by projects
-$projectStatusIds = [];
-$this->ci->load->model('projects_model');
-foreach ($this->ci->projects_model->get_project_statuses() as $status) {
-    if ($this->ci->input->post('projects_' . $status['id'])) {
-        array_push($projectStatusIds, $status['id']);
+// Filter by programs
+$programStatusIds = [];
+$program_states = get_program_states();
+
+foreach ($program_states as $state) {
+    if ($this->ci->input->post('programs_' . $state['id'])) {
+        array_push($programStatusIds, $state['id']);
     }
 }
-if (count($projectStatusIds) > 0) {
-    array_push($filter, 'AND '.db_prefix().'clients.userid IN (SELECT clientid FROM '.db_prefix().'projects WHERE status IN (' . implode(', ', $projectStatusIds) . '))');
+if (count($programStatusIds) > 0) {
+    array_push($filter, 'AND '.db_prefix().'clients.userid IN (SELECT clientid FROM '.db_prefix().'programs WHERE state IN (' . implode(', ', $programStatusIds) . '))');
 }
 
 
@@ -109,9 +103,9 @@ if ($this->ci->input->post('my_customers')) {
     array_push($where, 'AND '.db_prefix().'clients.userid IN (SELECT customer_id FROM '.db_prefix().'customer_admins WHERE staff_id=' . get_staff_user_id() . ') ');
 }
 
-array_push($where, 'AND ('.db_prefix().'clients.is_pjk3 = '.$is_pjk3.') ');
+array_push($where, 'AND ('.db_prefix().'clients.is_inspector = '.$is_inspector.') ');
 
-// print_r($is_pjk3); exit;
+// print_r($is_inspector); exit;
 
 $aColumns = hooks()->apply_filters('customers_table_sql_columns', $aColumns);
 
@@ -162,13 +156,13 @@ foreach ($rResult as $aRow) {
     $company .= '<a href="' . $url . '">' . _l('view') . '</a>';
 
     if ($aRow['registration_confirmed'] == 0 && is_admin()) {
-        $company .= ' | <a href="' . admin_url('pjk3/confirm_registration/' . $aRow['userid']) . '" class="text-success bold">' . _l('confirm_registration') . '</a>';
+        $company .= ' | <a href="' . admin_url('inspectors/confirm_registration/' . $aRow['userid']) . '" class="text-success bold">' . _l('confirm_registration') . '</a>';
     }
     if (!$isPerson) {
-        $company .= ' | <a href="' . admin_url('pjk3/client/' . $aRow['userid'] . '?group=contacts') . '">' . _l('customer_contacts') . '</a>';
+        $company .= ' | <a href="' . admin_url('inspectors/client/' . $aRow['userid'] . '?group=contacts') . '">' . _l('customer_contacts') . '</a>';
     }
     if ($hasPermissionDelete) {
-        $company .= ' | <a href="' . admin_url('pjk3/delete/' . $aRow['userid']) . '" class="text-danger _delete">' . _l('delete') . '</a>';
+        $company .= ' | <a href="' . admin_url('inspectors/delete/' . $aRow['userid']) . '" class="text-danger _delete">' . _l('delete') . '</a>';
     }
 
     $company .= '</div>';
@@ -176,7 +170,7 @@ foreach ($rResult as $aRow) {
     $row[] = $company;
 
     // Primary contact
-    $row[] = ($aRow['contact_id'] ? '<a href="' . admin_url('pjk3/client/' . $aRow['userid'] . '?contactid=' . $aRow['contact_id']) . '" target="_blank">' . $aRow['firstname'] . ' ' . $aRow['lastname'] . '</a>' : '');
+    $row[] = ($aRow['contact_id'] ? '<a href="' . admin_url('inspectors/client/' . $aRow['userid'] . '?contactid=' . $aRow['contact_id']) . '" target="_blank">' . $aRow['firstname'] . ' ' . $aRow['lastname'] . '</a>' : '');
 
     // Primary contact email
     $row[] = ($aRow['email'] ? '<a href="mailto:' . $aRow['email'] . '">' . $aRow['email'] . '</a>' : '');
@@ -189,7 +183,7 @@ foreach ($rResult as $aRow) {
 
     // Toggle active/inactive customer
     $toggleActive = '<div class="onoffswitch" data-toggle="tooltip" data-title="' . _l('customer_active_inactive_help') . '">
-    <input type="checkbox"' . ($aRow['registration_confirmed'] == 0 ? ' disabled' : '') . ' data-switch-url="' . admin_url() . 'pjk3/change_client_status" name="onoffswitch" class="onoffswitch-checkbox" id="' . $aRow['userid'] . '" data-id="' . $aRow['userid'] . '" ' . ($aRow[db_prefix().'clients.active'] == 1 ? 'checked' : '') . '>
+    <input type="checkbox"' . ($aRow['registration_confirmed'] == 0 ? ' disabled' : '') . ' data-switch-url="' . admin_url() . 'inspectors/change_client_state" name="onoffswitch" class="onoffswitch-checkbox" id="' . $aRow['userid'] . '" data-id="' . $aRow['userid'] . '" ' . ($aRow[db_prefix().'clients.active'] == 1 ? 'checked' : '') . '>
     <label class="onoffswitch-label" for="' . $aRow['userid'] . '"></label>
     </div>';
 
@@ -198,19 +192,19 @@ foreach ($rResult as $aRow) {
 
 
     $row[] = $toggleActive;
-     $toggle_pre_pjk3 = '<div class="onoffswitch custom_toggle"><label class="toggleSwitch" onclick="">
-        <input type="checkbox" data-switch-url="' . admin_url() . 'pjk3/change_pjk3_preference" name="onoffswitch" class="onoffswitch-checkbox" id="' . $aRow['userid'] . '" data-id="' . $aRow['userid'] . '" ' . ($aRow['is_preffered'] == 1 ? 'checked' : '') . '>
+     $toggle_pre_inspector = '<div class="onoffswitch custom_toggle"><label class="toggleSwitch" onclick="">
+        <input type="checkbox" data-switch-url="' . admin_url() . 'inspectors/change_inspector_preference" name="onoffswitch" class="onoffswitch-checkbox" id="' . $aRow['userid'] . '" data-id="' . $aRow['userid'] . '" ' . ($aRow['is_preffered'] == 1 ? 'checked' : '') . '>
         <span>
             <span></span>
             <span></span>
-            
+
         </span>
         <a></a>
     </label></div>';
 
     // For exporting
-    $toggle_pre_pjk3 .= '<span class="hide">' . ($aRow['is_preffered'] == 1 ? _l('is_active_export') : _l('is_not_active_export')) . '</span>';
-    $row[] = $toggle_pre_pjk3;
+    $toggle_pre_inspector .= '<span class="hide">' . ($aRow['is_preffered'] == 1 ? _l('is_active_export') : _l('is_not_active_export')) . '</span>';
+    $row[] = $toggle_pre_inspector;
 
     // Custom fields add values
     foreach ($customFieldsColumns as $customFieldColumn) {

@@ -9,7 +9,7 @@ if (!$CI->db->table_exists(db_prefix() . 'inspectors')) {
       `datesend` datetime DEFAULT NULL,
       `clientid` int(11) NOT NULL,
       `deleted_customer_name` varchar(100) DEFAULT NULL,
-      `project_id` int(11) NOT NULL DEFAULT 0,
+      `program_id` int(11) NOT NULL DEFAULT 0,
       `number` int(11) NOT NULL,
       `prefix` varchar(50) DEFAULT NULL,
       `number_format` int(11) NOT NULL DEFAULT 0,
@@ -23,7 +23,7 @@ if (!$CI->db->table_exists(db_prefix() . 'inspectors')) {
       `total` decimal(15,2) NOT NULL,
       `adjustment` decimal(15,2) DEFAULT NULL,
       `addedfrom` int(11) NOT NULL,
-      `status` int(11) NOT NULL DEFAULT 1,
+      `state` int(11) NOT NULL DEFAULT 1,
       `clientnote` text DEFAULT NULL,
       `adminnote` text DEFAULT NULL,
       `discount_percent` decimal(15,2) DEFAULT 0.00,
@@ -62,9 +62,9 @@ if (!$CI->db->table_exists(db_prefix() . 'inspectors')) {
       ADD PRIMARY KEY (`id`),
       ADD UNIQUE( `number`),
       ADD KEY `signed` (`signed`),
-      ADD KEY `status` (`status`),
+      ADD KEY `state` (`state`),
       ADD KEY `clientid` (`clientid`),
-      ADD KEY `project_id` (`project_id`)
+      ADD KEY `program_id` (`program_id`)
       ;');
 
     $CI->db->query('ALTER TABLE `' . db_prefix() . 'inspectors`
