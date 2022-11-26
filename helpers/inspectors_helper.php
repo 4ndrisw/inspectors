@@ -6,8 +6,54 @@ function get_inspector_name_by_id($inspector_id){
         $CI->db->select(['company']);
         $CI->db->where('userid', $inspector_id);
     return $CI->db->get(db_prefix() . 'clients')->row('company');
-
 }
+
+
+function is_inspector_staff($staff_id){
+    $CI = &get_instance();
+    $CI->db->select(['staffid']);
+    $CI->db->where('client_type', 'inspector');
+    $CI->db->where('is_not_staff', 0);
+    $CI->db->where('staffid', $staff_id);
+    return (bool)$CI->db->get(db_prefix() . 'staff')->result();
+}
+
+function get_inspector_id_by_staff_id($staff_id){
+    $CI = &get_instance();
+        $CI->db->select(['client_id']);
+        $CI->db->where('staffid', $staff_id);
+    return $CI->db->get(db_prefix() . 'staff')->row('client_id');
+}
+/*
+function get_institution_id_by_staff_id($staff_id){
+    $CI = &get_instance();
+    $inspector_id = get_inspector_id_by_staff_id($staff_id);
+    log_activity('staff_id. '. $staff_id);
+    log_activity('inspector_id. '. $inspector_id);
+        $CI->db->select('institution_id');
+        $CI->db->where('userid', $inspector_id);
+    return $CI->db->get(db_prefix() . 'clients')->row('institution_id');
+}
+*/
+
+function get_institution_id_by_staff_id($staff_id){
+    $CI = &get_instance();
+    $inspector_id = get_inspector_id_by_staff_id($staff_id);
+        $CI->db->select('institution_id');
+        $CI->db->join(db_prefix() . 'clients', 'client_id = userid');
+        
+        $CI->db->where('staffid', $staff_id);
+
+    return $CI->db->get(db_prefix() . 'staff')->row('institution_id');
+}
+
+function get_institution_id_by_inspector_id($inspector_id){
+    $CI = &get_instance();
+        $CI->db->select('institution_id');
+        $CI->db->where('userid', $inspector_id);
+    return $CI->db->get(db_prefix() . 'clients')->row('institution_id');
+}
+
 
 function get_inspector_staff_data($userid='')
 {

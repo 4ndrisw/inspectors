@@ -156,6 +156,7 @@ $lang['client_add_edit_contact']     						= 'Tambah / ubah contact';
 $lang['permission_view_by_instansi']     						= 'Dilihat oleh instansi';
 $lang['permission_view_by_unit']     						= 'Dilihat oleh unit';
 $lang['client_add_edit_contact']     						= 'Tambah / ubah contact';
+$lang['allow_inspector_staff_only_view_inspectors_in_same_institution']     						= 'Ijin inspector staff hanya melihat UPT dalam satu Kantor Dinas';
 
 /*
 

@@ -160,6 +160,7 @@ $lang['inspectors_toggle_table_tooltip']           = 'Toggle Table';
 $lang['client_add_edit_contact']     						= 'Add edit contact';
 $lang['permission_view_by_instansi']     						= 'Permission view by instansi';
 $lang['permission_view_by_unit']     						= 'Permission view by unit';
+$lang['allow_inspector_staff_only_view_inspectors_in_same_institution']     						= 'Inspector staff only view inspectors in same institution';
 
 
 /*

@@ -2,6 +2,7 @@
 
 defined('BASEPATH') or exit('No direct script access allowed');
 $is_inspector=1;
+$staff_id = get_staff_user_id();
 
 $hasPermissionDelete = has_permission('customers', '', 'delete');
 
@@ -14,8 +15,6 @@ $aColumns = [
     'company',
     'firstname',
     'email',
-    'siup',
-    'is_preffered',
     db_prefix().'clients.phonenumber as phonenumber',
     db_prefix().'clients.active',
 ];
@@ -52,6 +51,7 @@ foreach ($countries as $country) {
         array_push($countryIds, $country['country_id']);
     }
 }
+
 if (count($countryIds) > 0) {
     array_push($filter, 'AND country IN (' . implode(',', $countryIds) . ')');
 }
@@ -104,6 +104,10 @@ if ($this->ci->input->post('my_customers')) {
 }
 
 array_push($where, 'AND ('.db_prefix().'clients.is_inspector = '.$is_inspector.') ');
+
+if(is_inspector_staff($staff_id) && get_option('allow_inspector_staff_only_view_inspectors_in_same_institution')){
+    array_push($where, 'AND institution_id = '. get_institution_id_by_staff_id($staff_id));    
+}
 
 // print_r($is_inspector); exit;
 
@@ -176,9 +180,6 @@ foreach ($rResult as $aRow) {
     $row[] = ($aRow['email'] ? '<a href="mailto:' . $aRow['email'] . '">' . $aRow['email'] . '</a>' : '');
 
     // Primary contact phone
-    $row[] = ($aRow['siup'] ? $aRow['siup'] : '');
-
-    // Primary contact phone
     $row[] = ($aRow['phonenumber'] ? '<a href="tel:' . $aRow['phonenumber'] . '">' . $aRow['phonenumber'] . '</a>' : '');
 
     // Toggle active/inactive customer
@@ -190,26 +191,7 @@ foreach ($rResult as $aRow) {
     // For exporting
     $toggleActive .= '<span class="hide">' . ($aRow[db_prefix().'clients.active'] == 1 ? _l('is_active_export') : _l('is_not_active_export')) . '</span>';
 
-
     $row[] = $toggleActive;
-     $toggle_pre_inspector = '<div class="onoffswitch custom_toggle"><label class="toggleSwitch" onclick="">
-        <input type="checkbox" data-switch-url="' . admin_url() . 'inspectors/change_inspector_preference" name="onoffswitch" class="onoffswitch-checkbox" id="' . $aRow['userid'] . '" data-id="' . $aRow['userid'] . '" ' . ($aRow['is_preffered'] == 1 ? 'checked' : '') . '>
-        <span>
-            <span></span>
-            <span></span>
-
-        </span>
-        <a></a>
-    </label></div>';
-
-    // For exporting
-    $toggle_pre_inspector .= '<span class="hide">' . ($aRow['is_preffered'] == 1 ? _l('is_active_export') : _l('is_not_active_export')) . '</span>';
-    $row[] = $toggle_pre_inspector;
-
-    // Custom fields add values
-    foreach ($customFieldsColumns as $customFieldColumn) {
-        $row[] = (strpos($customFieldColumn, 'date_picker_') !== false ? _d($aRow[$customFieldColumn]) : $aRow[$customFieldColumn]);
-    }
 
     $row['DT_RowClass'] = 'has-row-options';
 

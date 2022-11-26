@@ -131,7 +131,7 @@ class Inspectors extends AdminController
                     if ($this->set_inspector_pipeline_autoload($id)) {
                         redirect(admin_url('inspectors/list_inspectors/'));
                     } else {
-                        redirect(admin_url('inspectors/list_inspectors/' . $id));
+                        redirect(admin_url('inspectors/#' . $id));
                     }
                 }else{
                     access_denied('inspectors');
@@ -236,6 +236,16 @@ class Inspectors extends AdminController
 
         if (!$id) {
             die('No inspector found');
+        }
+
+        $staff_id = get_staff_user_id();
+        $institution_id = get_institution_id_by_inspector_id($id);
+        
+        if(is_inspector_staff($staff_id)){
+          if(get_option('allow_inspector_staff_only_view_inspectors_in_same_institution') && ($institution_id != get_institution_id_by_staff_id($staff_id))){
+            echo _l('access_denied');
+            die;
+          }
         }
 
         $inspector = $this->inspectors_model->get($id);

@@ -29,6 +29,8 @@
       <hr />
       <?php render_yes_no_option('view_inspector_only_logged_in','require_client_logged_in_to_view_inspector'); ?>
       <hr />
+      <?php render_yes_no_option('allow_inspector_staff_only_view_inspectors_in_same_institution','allow_inspector_staff_only_view_inspectors_in_same_institution'); ?>
+      <hr />
       <?php render_yes_no_option('show_assigned_on_inspectors','show_assigned_on_inspectors'); ?>
       <hr />
       <?php render_yes_no_option('show_program_on_inspector','show_program_on_inspector'); ?>

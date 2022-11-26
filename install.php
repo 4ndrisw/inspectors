@@ -54,6 +54,7 @@ add_option('inspector_accept_identity_confirmation', 1);
 add_option('inspector_qrcode_size', '160');
 add_option('inspector_send_telegram_message', 0);
 
+add_option('allow_inspector_staff_view_inspectors_in_same_institution', 1);
 
 /*
 

@@ -8,7 +8,7 @@
 	</div>
 </div>
 <?php $this->load->view('admin/includes/modals/sales_attach_file'); ?>
-<script>var hidden_columns = [4,5,6,7];</script>
+<script>var hidden_columns = [4,5,6];</script>
 <?php init_tail(); ?>
 <div id="convert_helper"></div>
 <script>
@@ -18,7 +18,7 @@
      $.each($('._hidden_inputs._filters input'),function(){
        Unit_ServerParams[$(this).attr('name')] = '[name="'+$(this).attr('name')+'"]';
      });
-     initDataTable('.table-inspectors', admin_url+'inspectors/table', ['undefined'], ['undefined'], Unit_ServerParams, [7, 'desc']);
+     initDataTable('.table-inspectors', admin_url+'inspectors/table', ['undefined'], ['undefined'], Unit_ServerParams, [6, 'desc']);
      init_inspector(inspectorid);
    });
    console.log(inspectorid);
