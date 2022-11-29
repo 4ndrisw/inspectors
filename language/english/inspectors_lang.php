@@ -62,7 +62,7 @@ $lang['inspector_acceptance_date']           = 'Acceptance Date';
 $lang['inspector_list_program']           = 'Program';
 $lang['view_inspector_as_client']         = 'View inspector as customer';
 $lang['inspector_mark_as']                = 'Mark as %s';
-$lang['inspector_staff_string']           = 'Inspector staff';
+$lang['inspector_staff_string']           = 'Inspector';
 $lang['inspector_note']                   = 'Note:';
 $lang['inspector_order']                  = 'To order the staff for';
 
