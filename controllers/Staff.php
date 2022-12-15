@@ -29,9 +29,17 @@ class Staff extends AdminController
     /* Add new staff member or edit existing */
     public function add($client_id)
     {
-        if (!has_permission('pengguna', '', 'view')) {
+        if (!has_permission('pengguna', '', 'create')) {
             access_denied('staff');
         }
+        
+        $staff_id = get_staff_user_id();
+        $current_user = get_client_type($staff_id);
+        $company_id = $current_user->client_id;
+        if($company_id != $client_id){
+            access_denied('staff');
+        }
+
         hooks()->do_action('inspector_member_add_view_profile');
 
         if ($this->input->post()) {

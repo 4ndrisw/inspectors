@@ -147,8 +147,8 @@ $lang['inspector_activity_client_accepted']                        	= 'Klien men
 $lang['inspector_activity_client_declined']                        	= 'Klien menolak UPT ini';
 $lang['inspector_activity_marked']                                 	= 'UPT ditandai sbg %s';
 
-$lang['inspector_staffs']                        	= 'Saff';
-$lang['inspector_staff']                        	= 'Saff';
+$lang['inspector_staffs']                        	= 'Staf';
+$lang['inspector_staff']                        	= 'Staf';
 $lang['permission_edit_own']                        	= 'Edit milik sendiri';
 $lang['inspector_activity_changed']                        	= 'UPT diubah';
 $lang['inspectors_toggle_table_tooltip']     						= 'Alihkan Tabel';
@@ -157,6 +157,15 @@ $lang['permission_view_by_instansi']     						= 'Dilihat oleh instansi';
 $lang['permission_view_by_unit']     						= 'Dilihat oleh unit';
 $lang['client_add_edit_contact']     						= 'Tambah / ubah contact';
 $lang['allow_inspector_staff_only_view_inspectors_in_same_institution']     						= 'Ijin inspector staff hanya melihat UPT dalam satu Kantor Dinas';
+
+
+$lang['inspector_staff_set_assignment_title']     	= 'Set penugasan';
+$lang['assignment_staff']							= 'Staff';
+$lang['assignment_number']							= 'Number';
+$lang['assignment_date_expired']				    = 'Expired';
+$lang['assignment_description']						= 'Keterangan';
+$lang['inspector_staff_assignments']						= 'Penugasan';
+
 
 /*
 

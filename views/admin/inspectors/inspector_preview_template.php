@@ -38,6 +38,24 @@
                      </a>
                   </li>
                   <li role="presentation">
+                     <a href="#tab_staff_assignments" onclick="initDataTable('.table-staff_assignments', admin_url + 'inspectors/get_staff_assignments/' + <?php echo $inspector->userid ;?> + '/' + 'inspector_staff', undefined, undefined, undefined,[1,'asc']); return false;" aria-controls="tab_staff_assignments" role="tab" data-toggle="tab">
+                     <?php echo _l('inspector_staff_assignments'); ?>
+                     <?php
+                        $total_staff_assignments = total_rows(db_prefix().'assignments',
+                          array(
+                           'isnotified'=>0,
+                           'staff'=>get_staff_user_id(),
+                           'rel_type'=>'inspector_staff',
+                           'rel_id'=>$inspector->userid
+                           )
+                          );
+                        if($total_staff_assignments > 0){
+                          echo '<span class="badge">'.$total_staff_assignments.'</span>';
+                        }
+                        ?>
+                     </a>
+                  </li>
+                  <li role="presentation">
                      <a href="#tab_activity" aria-controls="tab_activity" role="tab" data-toggle="tab">
                      <?php echo _l('inspector_view_activity_tooltip'); ?>
                      </a>
@@ -239,6 +257,12 @@
                ?>
                <?php //$this->load->view('admin/includes/modals/staff',array('id'=>$inspector->userid,'name'=>'inspector','member'=>$member,'staff_title'=>_l('inspector_set_staff_title'))); ?>
             </div>
+            <div role="tabpanel" class="tab-pane" id="tab_staff_assignments">
+               <a href="#" data-toggle="modal" class="btn btn-info" data-target=".assignment-modal-inspector_staff-<?php echo $inspector->userid; ?>"><i class="fa-solid fa-file-contract"></i> <?php echo _l('inspector_staff_set_assignment_title'); ?></a>
+               <hr />
+               <?php render_datatable(array( _l( 'assignment_number'), _l( 'assignment_date_expired'), _l( 'assignment_staff'), _l( 'assignment_description'), _l('is_active')), 'staff_assignments'); ?>
+               <?php $this->load->view('admin/includes/modals/assignment',array('id'=>$inspector->userid,'name'=>'inspector_staff','members'=>isset($members) ? $members : [],'assignment_title'=>_l('inspector_staff_set_assignment_title'))); ?>
+            </div>
             <div role="tabpanel" class="tab-pane" id="tab_reminders">
                <a href="#" data-toggle="modal" class="btn btn-info" data-target=".reminder-modal-inspector-<?php echo $inspector->userid; ?>"><i class="fa fa-bell-o"></i> <?php echo _l('inspector_set_reminder_title'); ?></a>
                <hr />
@@ -355,6 +379,8 @@
    init_selectpicker();
    init_form_reminder();
    init_tabs_scrollable();
+   init_assignment();
+   init_form_assignment();
    <?php if($send_later) { ?>
       inspector_inspector_send(<?php echo $inspector->userid; ?>);
    <?php } ?>

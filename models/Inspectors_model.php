@@ -370,592 +370,8 @@ class Inspectors_model extends Clients_Model
     }
 
     /**
-     * Get inspector surveyors id
-     * @param mixed $id item id
-     * @return object
-     */
-    
-    public function get_inspector_surveyors($id ='')
-    {
-        if($id){
-            $this->db->where('surveyor_id', $id);
-        }
-
-        return $this->db->get(db_prefix() . 'inspector_surveyors')->row();
-    }
-
-    public function get_inspector_companies($id ='')
-    {
-        if($id){
-            $this->db->where('company_id', $id);
-        }
-
-        return $this->db->get(db_prefix() . 'inspector_companies')->row();
-    }    
-
-    public function check_inspector_name_exist($company){
-        $this->db->select('company');
-        $this->db->where('company', $company);
-        $result = $this->db->get(db_prefix(). 'clients')->num_rows();
-        if($result>0){
-            return TRUE;
-        }
-        return FALSE;
-    }
-
-    /**
-     * @param  array $_POST data
-     * @param  integer ID
-     * @return boolean
-     * Update client informations
-     */
-
-    public function update($data, $id, $client_request = false)
-    {
-        $updated = false;
-        $data    = $this->check_zero_columns($data);
-        $origin = $this->get($id);
-
-        $data = hooks()->apply_filters('before_client_updated', $data, $id);
-
-        $groups_in                     = Arr::pull($data, 'groups_in') ?? false;
-
-        //trigger exception in a "try" block
-        try {
-            $company_name_exist = $this->check_inspector_name_exist($data['company']);
-            if($company_name_exist && ($origin->company!=$data['company'])){
-                return;
-            }
-            $this->db->where('userid', $id);
-            $this->db->update(db_prefix() . 'clients', $data);
-        }
-
-        //catch exception
-        catch(Exception $e) {
-          echo 'Message: ' .$e->getMessage();
-        }
-
-
-        if ($this->db->affected_rows() > 0) {
-            $updated = true;
-            $inspector = $this->get($id);
-
-            $fields = array('company', 'vat','siup', 'bpjs_kesehatan', 'bpjs_ketenagakerjaan', 'phonenumber');
-            $custom_data = '';
-            foreach ($fields as $field) {
-                if ($origin->$field != $inspector->$field) {
-                    $custom_data .= str_replace('_', ' ', $field) .' '. $origin->$field . ' to ' .$inspector->$field .'<br />';
-                }
-            }
-            $this->log_inspector_activity($origin->userid, 'inspector_activity_changed', false, serialize([
-                '<custom_data>'. $custom_data .'</custom_data>',
-            ]));
-        }
-
-        if ($this->client_groups_model->sync_customer_groups($id, $groups_in)) {
-            $updated = true;
-        }
-
-        hooks()->do_action('client_updated', [
-            'id'                            => $id,
-            'data'                          => $data,
-            'update_all_other_transactions' => $update_all_other_transactions,
-            'groups_in'                     => $groups_in,
-            'updated'                       => &$updated,
-        ]);
-
-        if ($updated) {
-            log_activity('Customer Info Updated [ID: ' . $id . ']');
-        }
-
-        return $inspector;
-    }
-
-    public function mark_action_state($action, $id, $client = false)
-    {
-        $this->db->where('id', $id);
-        $this->db->update(db_prefix() . 'inspectors', [
-            'state' => $action,
-        ]);
-
-        $notifiedUsers = [];
-
-        if ($this->db->affected_rows() > 0) {
-            $inspector = $this->get($id);
-            if ($client == true) {
-                $this->db->where('staffid', $inspector->addedfrom);
-                $this->db->or_where('staffid', $inspector->sale_agent);
-                $staff_inspector = $this->db->get(db_prefix() . 'staff')->result_array();
-
-                $invoiceid = false;
-                $invoiced  = false;
-
-                $contact_id = !is_client_logged_in()
-                    ? get_primary_contact_user_id($inspector->clientid)
-                    : get_contact_user_id();
-
-                if ($action == 4) {
-                    if (get_option('inspector_auto_convert_to_invoice_on_client_accept') == 1) {
-                        $invoiceid = $this->convert_to_invoice($id, true);
-                        $this->load->model('invoices_model');
-                        if ($invoiceid) {
-                            $invoiced = true;
-                            $invoice  = $this->invoices_model->get($invoiceid);
-                            $this->log_inspector_activity($id, 'inspector_activity_client_accepted_and_converted', true, serialize([
-                                '<a href="' . admin_url('invoices/list_invoices/' . $invoiceid) . '">' . format_invoice_number($invoice->id) . '</a>',
-                            ]));
-                        }
-                    } else {
-                        $this->log_inspector_activity($id, 'inspector_activity_client_accepted', true);
-                    }
-
-                    // Send thank you email to all contacts with permission inspectors
-                    $contacts = $this->clients_model->get_contacts($inspector->clientid, ['active' => 1, 'inspector_emails' => 1]);
-
-                    foreach ($contacts as $contact) {
-                        send_mail_template('inspector_accepted_to_customer', $inspector, $contact);
-                    }
-
-                    foreach ($staff_inspector as $member) {
-                        $notified = add_notification([
-                            'fromcompany'     => true,
-                            'touserid'        => $member['staffid'],
-                            'description'     => 'not_inspector_customer_accepted',
-                            'link'            => 'inspectors/list_inspectors/' . $id,
-                            'additional_data' => serialize([
-                                format_inspector_number($inspector->id),
-                            ]),
-                        ]);
-
-                        if ($notified) {
-                            array_push($notifiedUsers, $member['staffid']);
-                        }
-
-                        send_mail_template('inspector_accepted_to_staff', $inspector, $member['email'], $contact_id);
-                    }
-
-                    pusher_trigger_notification($notifiedUsers);
-                    hooks()->do_action('inspector_accepted', $id);
-
-                    return [
-                        'invoiced'  => $invoiced,
-                        'invoiceid' => $invoiceid,
-                    ];
-                } elseif ($action == 3) {
-                    foreach ($staff_inspector as $member) {
-                        $notified = add_notification([
-                            'fromcompany'     => true,
-                            'touserid'        => $member['staffid'],
-                            'description'     => 'not_inspector_customer_declined',
-                            'link'            => 'inspectors/list_inspectors/' . $id,
-                            'additional_data' => serialize([
-                                format_inspector_number($inspector->id),
-                            ]),
-                        ]);
-
-                        if ($notified) {
-                            array_push($notifiedUsers, $member['staffid']);
-                        }
-                        // Send staff email notification that customer declined inspector
-                        send_mail_template('inspector_declined_to_staff', $inspector, $member['email'], $contact_id);
-                    }
-
-                    pusher_trigger_notification($notifiedUsers);
-                    $this->log_inspector_activity($id, 'inspector_activity_client_declined', true);
-                    hooks()->do_action('inspector_declined', $id);
-
-                    return [
-                        'invoiced'  => $invoiced,
-                        'invoiceid' => $invoiceid,
-                    ];
-                }
-            } else {
-                if ($action == 2) {
-                    $this->db->where('id', $id);
-                    $this->db->update(db_prefix() . 'inspectors', ['sent' => 1, 'datesend' => date('Y-m-d H:i:s')]);
-                }
-                // Admin marked inspector
-                $this->log_inspector_activity($id, 'inspector_activity_marked', false, serialize([
-                    '<state>' . $action . '</state>',
-                ]));
-
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Get inspector attachments
-     * @param mixed $inspector_id
-     * @param string $id attachment id
-     * @return mixed
-     */
-    public function get_attachments($inspector_id, $id = '')
-    {
-        // If is passed id get return only 1 attachment
-        if (is_numeric($id)) {
-            $this->db->where('id', $id);
-        } else {
-            $this->db->where('rel_id', $inspector_id);
-        }
-        $this->db->where('rel_type', 'inspector');
-        $result = $this->db->get(db_prefix() . 'files');
-        if (is_numeric($id)) {
-            return $result->row();
-        }
-
-        return $result->result_array();
-    }
-
-    /**
-     *  Delete inspector attachment
-     * @param mixed $id attachmentid
-     * @return  boolean
-     */
-    public function delete_attachment($id)
-    {
-        $attachment = $this->get_attachments('', $id);
-        $deleted    = false;
-        if ($attachment) {
-            if (empty($attachment->external)) {
-                unlink(get_upload_path_by_type('inspector') . $attachment->rel_id . '/' . $attachment->file_name);
-            }
-            $this->db->where('id', $attachment->id);
-            $this->db->delete(db_prefix() . 'files');
-            if ($this->db->affected_rows() > 0) {
-                $deleted = true;
-                log_activity('Inspector Attachment Deleted [InspectorID: ' . $attachment->rel_id . ']');
-            }
-
-            if (is_dir(get_upload_path_by_type('inspector') . $attachment->rel_id)) {
-                // Check if no attachments left, so we can delete the folder also
-                $other_attachments = list_files(get_upload_path_by_type('inspector') . $attachment->rel_id);
-                if (count($other_attachments) == 0) {
-                    // okey only index.html so we can delete the folder also
-                    delete_dir(get_upload_path_by_type('inspector') . $attachment->rel_id);
-                }
-            }
-        }
-
-        return $deleted;
-    }
-
-    /**
-     * Delete inspector items and all connections
-     * @param mixed $id inspectorid
-     * @return boolean
-     */
-    public function delete($id, $simpleDelete = false)
-    {
-        if (get_option('delete_only_on_last_inspector') == 1 && $simpleDelete == false) {
-            if (!is_last_inspector($id)) {
-                return false;
-            }
-        }
-        $inspector = $this->get($id);
-        if (!is_null($inspector->invoiceid) && $simpleDelete == false) {
-            return [
-                'is_invoiced_inspector_delete_error' => true,
-            ];
-        }
-        hooks()->do_action('before_inspector_deleted', $id);
-
-        $number = format_inspector_number($id);
-
-        $this->clear_signature($id);
-
-        $this->db->where('id', $id);
-        $this->db->delete(db_prefix() . 'inspectors');
-
-        if ($this->db->affected_rows() > 0) {
-            if (!is_null($inspector->short_link)) {
-                app_archive_short_link($inspector->short_link);
-            }
-
-            if (get_option('inspector_number_decrement_on_delete') == 1 && $simpleDelete == false) {
-                $current_next_inspector_number = get_option('next_inspector_number');
-                if ($current_next_inspector_number > 1) {
-                    // Decrement next inspector number to
-                    $this->db->where('name', 'next_inspector_number');
-                    $this->db->set('value', 'value-1', false);
-                    $this->db->update(db_prefix() . 'options');
-                }
-            }
-
-            if (total_rows(db_prefix() . 'proposals', [
-                    'inspector_id' => $id,
-                ]) > 0) {
-                $this->db->where('inspector_id', $id);
-                $inspector = $this->db->get(db_prefix() . 'proposals')->row();
-                $this->db->where('id', $inspector->id);
-                $this->db->update(db_prefix() . 'proposals', [
-                    'inspector_id'    => null,
-                    'date_converted' => null,
-                ]);
-            }
-
-            delete_tracked_emails($id, 'inspector');
-
-            $this->db->where('relid IN (SELECT id from ' . db_prefix() . 'itemable WHERE rel_type="inspector" AND rel_id="' . $this->db->escape_str($id) . '")');
-            $this->db->where('fieldto', 'items');
-            $this->db->delete(db_prefix() . 'customfieldsvalues');
-
-            $this->db->where('rel_id', $id);
-            $this->db->where('rel_type', 'inspector');
-            $this->db->delete(db_prefix() . 'notes');
-
-            $this->db->where('rel_type', 'inspector');
-            $this->db->where('rel_id', $id);
-            $this->db->delete(db_prefix() . 'views_tracking');
-
-            $this->db->where('rel_type', 'inspector');
-            $this->db->where('rel_id', $id);
-            $this->db->delete(db_prefix() . 'reminders');
-
-            $this->db->where('rel_id', $id);
-            $this->db->where('rel_type', 'inspector');
-            $this->db->delete(db_prefix() . 'inspector_activity');
-
-            $attachments = $this->get_attachments($id);
-            foreach ($attachments as $attachment) {
-                $this->delete_attachment($attachment['id']);
-            }
-
-            $this->db->where('rel_id', $id);
-            $this->db->where('rel_type', 'inspector');
-            $this->db->delete('scheduled_emails');
-
-            // Get related tasks
-            $this->db->where('rel_type', 'inspector');
-            $this->db->where('rel_id', $id);
-            $tasks = $this->db->get(db_prefix() . 'tasks')->result_array();
-            foreach ($tasks as $task) {
-                $this->tasks_model->delete_task($task['id']);
-            }
-            if ($simpleDelete == false) {
-                log_activity('Inspectors Deleted [Number: ' . $number . ']');
-            }
-
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Set inspector to sent when email is successfuly sended to client
-     * @param mixed $id inspectorid
-     */
-    public function set_inspector_sent($id, $emails_sent = [])
-    {
-        $this->db->where('id', $id);
-        $this->db->update(db_prefix() . 'inspectors', [
-            'sent'     => 1,
-            'datesend' => date('Y-m-d H:i:s'),
-        ]);
-
-        $this->log_inspector_activity($id, 'invoice_inspector_activity_sent_to_client', false, serialize([
-            '<custom_data>' . implode(', ', $emails_sent) . '</custom_data>',
-        ]));
-
-        // Update inspector state to sent
-        $this->db->where('id', $id);
-        $this->db->update(db_prefix() . 'inspectors', [
-            'state' => 2,
-        ]);
-
-        $this->db->where('rel_id', $id);
-        $this->db->where('rel_type', 'inspector');
-        $this->db->delete('scheduled_emails');
-    }
-
-    /**
-     * Send expiration reminder to customer
-     * @param mixed $id inspector id
-     * @return boolean
-     */
-    public function send_expiry_reminder($id)
-    {
-        $inspector        = $this->get($id);
-        $inspector_number = format_inspector_number($inspector->id);
-        set_mailing_constant();
-        $pdf              = inspector_pdf($inspector);
-        $attach           = $pdf->Output($inspector_number . '.pdf', 'S');
-        $emails_sent      = [];
-        $sms_sent         = false;
-        $sms_reminder_log = [];
-
-        // For all cases update this to prevent sending multiple reminders eq on fail
-        $this->db->where('id', $id);
-        $this->db->update(db_prefix() . 'inspectors', [
-            'is_expiry_notified' => 1,
-        ]);
-
-        $contacts = $this->clients_model->get_contacts($inspector->clientid, ['active' => 1, 'inspector_emails' => 1]);
-
-        foreach ($contacts as $contact) {
-            $template = mail_template('inspector_expiration_reminder', $inspector, $contact);
-
-            $merge_fields = $template->get_merge_fields();
-
-            $template->add_attachment([
-                'attachment' => $attach,
-                'filename'   => str_replace('/', '-', $inspector_number . '.pdf'),
-                'type'       => 'application/pdf',
-            ]);
-
-            if ($template->send()) {
-                array_push($emails_sent, $contact['email']);
-            }
-
-            if (can_send_sms_based_on_creation_date($inspector->datecreated)
-                && $this->app_sms->trigger(SMS_TRIGGER_ESTIMATE_EXP_REMINDER, $contact['phonenumber'], $merge_fields)) {
-                $sms_sent = true;
-                array_push($sms_reminder_log, $contact['firstname'] . ' (' . $contact['phonenumber'] . ')');
-            }
-        }
-
-        if (count($emails_sent) > 0 || $sms_sent) {
-            if (count($emails_sent) > 0) {
-                $this->log_inspector_activity($id, 'not_expiry_reminder_sent', false, serialize([
-                    '<custom_data>' . implode(', ', $emails_sent) . '</custom_data>',
-                ]));
-            }
-
-            if ($sms_sent) {
-                $this->log_inspector_activity($id, 'sms_reminder_sent_to', false, serialize([
-                    implode(', ', $sms_reminder_log),
-                ]));
-            }
-
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Send inspector to client
-     * @param mixed $id inspectorid
-     * @param string $template email template to sent
-     * @param boolean $attachpdf attach inspector pdf or not
-     * @return boolean
-     */
-    public function send_inspector_to_client($id, $template_name = '', $attachpdf = true, $cc = '', $manually = false)
-    {
-        $inspector = $this->get($id);
-
-        if ($template_name == '') {
-            $template_name = $inspector->sent == 0 ?
-                'inspector_send_to_customer' :
-                'inspector_send_to_customer_already_sent';
-        }
-
-        $inspector_number = format_inspector_number($inspector->id);
-
-        $emails_sent = [];
-        $send_to     = [];
-
-        // Manually is used when sending the inspector via add/edit area button Save & Send
-        if (!DEFINED('CRON') && $manually === false) {
-            $send_to = $this->input->post('sent_to');
-        } elseif (isset($GLOBALS['scheduled_email_contacts'])) {
-            $send_to = $GLOBALS['scheduled_email_contacts'];
-        } else {
-            $contacts = $this->clients_model->get_contacts(
-                $inspector->clientid,
-                ['active' => 1, 'inspector_emails' => 1]
-            );
-
-            foreach ($contacts as $contact) {
-                array_push($send_to, $contact['id']);
-            }
-        }
-
-        $state_auto_updated = false;
-        $state_now          = $inspector->state;
-
-        if (is_array($send_to) && count($send_to) > 0) {
-            $i = 0;
-
-            // Auto update state to sent in case when user sends the inspector is with state draft
-            if ($state_now == 1) {
-                $this->db->where('id', $inspector->id);
-                $this->db->update(db_prefix() . 'inspectors', [
-                    'state' => 2,
-                ]);
-                $state_auto_updated = true;
-            }
-
-            if ($attachpdf) {
-                $_pdf_inspector = $this->get($inspector->id);
-                set_mailing_constant();
-                $pdf = inspector_pdf($_pdf_inspector);
-
-                $attach = $pdf->Output($inspector_number . '.pdf', 'S');
-            }
-
-            foreach ($send_to as $contact_id) {
-                if ($contact_id != '') {
-                    // Send cc only for the first contact
-                    if (!empty($cc) && $i > 0) {
-                        $cc = '';
-                    }
-
-                    $contact = $this->clients_model->get_contact($contact_id);
-
-                    if (!$contact) {
-                        continue;
-                    }
-
-                    $template = mail_template($template_name, $inspector, $contact, $cc);
-
-                    if ($attachpdf) {
-                        $hook = hooks()->apply_filters('send_inspector_to_customer_file_name', [
-                            'file_name' => str_replace('/', '-', $inspector_number . '.pdf'),
-                            'inspector'  => $_pdf_inspector,
-                        ]);
-
-                        $template->add_attachment([
-                            'attachment' => $attach,
-                            'filename'   => $hook['file_name'],
-                            'type'       => 'application/pdf',
-                        ]);
-                    }
-
-                    if ($template->send()) {
-                        array_push($emails_sent, $contact->email);
-                    }
-                }
-                $i++;
-            }
-        } else {
-            return false;
-        }
-
-        if (count($emails_sent) > 0) {
-            $this->set_inspector_sent($id, $emails_sent);
-            hooks()->do_action('inspector_sent', $id);
-
-            return true;
-        }
-
-        if ($state_auto_updated) {
-            // Inspector not send to customer but the state was previously updated to sent now we need to revert back to draft
-            $this->db->where('id', $inspector->id);
-            $this->db->update(db_prefix() . 'inspectors', [
-                'state' => 1,
-            ]);
-        }
-
-        return false;
-    }
-
-    /**
-     * All inspector activity
-     * @param mixed $id inspectorid
+     * All surveyor activity
+     * @param mixed $id surveyorid
      * @return array
      */
     public function get_inspector_activity($id)
@@ -964,96 +380,144 @@ class Inspectors_model extends Clients_Model
         $this->db->where('rel_type', 'inspector');
         $this->db->order_by('date', 'desc');
 
-        return $this->db->get(db_prefix() . 'inspector_activity')->result_array();
+        return $this->db->get(db_prefix() . 'surveyor_activity')->result_array();
     }
 
+
     /**
-     * Log inspector activity to database
-     * @param mixed $id inspectorid
-     * @param string $description activity description
+     * Add assignment
+     * @since  Version 1.0.2
+     * @param mixed $data All $_POST data for the assignment
+     * @param mixed $id   relid id
+     * @return boolean
      */
-    public function log_inspector_activity($id, $description = '', $client = false, $additional_data = '')
+    public function add_assignment($data, $id)
     {
-        $staffid   = get_staff_user_id();
-        $full_name = get_staff_full_name(get_staff_user_id());
-        if (DEFINED('CRON')) {
-            $staffid   = '[CRON]';
-            $full_name = '[CRON]';
-        } elseif ($client == true) {
-            $staffid   = null;
-            $full_name = '';
+        if (isset($data['notify_by_email'])) {
+            $data['notify_by_email'] = 1;
+        } //isset($data['notify_by_email'])
+        else {
+            $data['notify_by_email'] = 0;
         }
-
-        $this->db->insert(db_prefix() . 'inspector_activity', [
-            'description'     => $description,
-            'date'            => date('Y-m-d H:i:s'),
-            'rel_id'          => $id,
-            'rel_type'        => 'inspector',
-            'staffid'         => $staffid,
-            'full_name'       => $full_name,
-            'additional_data' => $additional_data,
-        ]);
+        //$data['date']        = to_sql_date($data['date'], true);
+        $data['description'] = nl2br($data['description']);
+        $data['creator']     = get_staff_user_id();
+        $this->db->insert(db_prefix() . 'assignments', $data);
+        $insert_id = $this->db->insert_id();
+        if ($insert_id) {
+            log_activity('New assignment Added [' . ucfirst($data['rel_type']) . 'ID: ' . $data['rel_id'] . ' Description: ' . $data['description'] . ']');
+            return true;
+        } //$insert_id
+        return false;
     }
 
-    /**
-     * Updates pipeline order when drag and drop
-     * @param mixe $data $_POST data
-     * @return void
-     */
-    public function update_pipeline($data)
+    public function edit_assignment($data, $id)
     {
-        $this->mark_action_state($data['state'], $data['inspectorid']);
-        AbstractKanban::updateOrder($data['order'], 'pipeline_order', 'inspectors', $data['state']);
-    }
-
-    /**
-     * Get inspector unique year for filtering
-     * @return array
-     */
-    public function get_inspectors_years()
-    {
-        return $this->db->query('SELECT DISTINCT(YEAR(date)) as year FROM ' . db_prefix() . 'inspectors ORDER BY year DESC')->result_array();
-    }
-
-    private function map_shipping_columns($data)
-    {
-        if (!isset($data['include_shipping'])) {
-            foreach ($this->shipping_fields as $_s_field) {
-                if (isset($data[$_s_field])) {
-                    $data[$_s_field] = null;
-                }
-            }
-            $data['show_shipping_on_inspector'] = 1;
-            $data['include_shipping']          = 0;
+        if (isset($data['notify_by_email'])) {
+            $data['notify_by_email'] = 1;
         } else {
-            $data['include_shipping'] = 1;
-            // set by default for the next time to be checked
-            if (isset($data['show_shipping_on_inspector']) && ($data['show_shipping_on_inspector'] == 1 || $data['show_shipping_on_inspector'] == 'on')) {
-                $data['show_shipping_on_inspector'] = 1;
-            } else {
-                $data['show_shipping_on_inspector'] = 0;
-            }
+            $data['notify_by_email'] = 0;
         }
 
-        return $data;
-    }
+        $data['date_issued']        = _d($data['date_issued'], true);
+        $data['date_expired']        = _d($data['date_expired'], true);
+        $category = get_kelompok_alat($data['category_id']);
+        $data['category']           =  $category[0]['name'];
+        $data['description'] = nl2br($data['description']);
 
-    public function do_kanban_query($state, $search = '', $page = 1, $sort = [], $count = false)
+        $this->db->where('id', $id);
+        $this->db->update(db_prefix() . 'assignments', $data);
+
+        if ($this->db->affected_rows() > 0) {
+            return true;
+        }
+
+        return false;
+    }
+    
+    
+    /**
+     * Get all assignments or 1 assignment if id is passed
+     * @since Version 1.0.2
+     * @param  mixed $id assignment id OPTIONAL
+     * @return array or object
+     */
+    public function get_assignments($id = '')
     {
-        _deprecated_function('Inspectors_model::do_kanban_query', '2.9.2', 'InspectorsPipeline class');
+        $this->db->join(db_prefix() . 'staff', '' . db_prefix() . 'staff.staffid = ' . db_prefix() . 'assignments.staff', 'left');
+        if (is_numeric($id)) {
+            $this->db->where(db_prefix() . 'assignments.id', $id);
 
-        $kanBan = (new InspectorsPipeline($state))
-            ->search($search)
-            ->page($page)
-            ->sortBy($sort['sort'] ?? null, $sort['sort_by'] ?? null);
+            return $this->db->get(db_prefix() . 'assignments')->row();
+        } //is_numeric($id)
+        $this->db->order_by('date_expired', 'desc');
 
-        if ($count) {
-            return $kanBan->countAll();
-        }
-
-        return $kanBan->get();
+        return $this->db->get(db_prefix() . 'assignments')->result_array();
     }
 
+    /**
+     * Remove client assignment from database
+     * @since Version 1.0.2
+     * @param  mixed $id assignment id
+     * @return boolean
+     */
+    public function delete_assignment($id)
+    {
+        $assignment = $this->get_assignments($id);
+        if ($assignment->creator == get_staff_user_id() || is_admin()) {
+            $this->db->where('id', $id);
+            $this->db->delete(db_prefix() . 'assignments');
+            if ($this->db->affected_rows() > 0) {
+                log_activity('assignment Deleted [' . ucfirst($assignment->rel_type) . 'ID: ' . $assignment->id . ' Description: ' . $assignment->description . ']');
 
+                return true;
+            } //$this->db->affected_rows() > 0
+            return false;
+        } //$assignment->creator == get_staff_user_id() || is_admin()
+        return false;
+    }
 
+    /**
+     * @param  integer ID
+     * @param  integer Status ID
+     * @return boolean
+     * Update assignment status Active/Inactive
+     */
+    public function change_assignment_status($id, $status)
+    {
+        $this->db->where('id', $id);
+        $this->db->update(db_prefix() . 'assignments', [
+            'is_active' => $status,
+        ]);
+
+        if ($this->db->affected_rows() > 0) {
+            hooks()->do_action('assignment_status_changed', [
+                'id'     => $id,
+                'status' => $status,
+            ]);
+
+            log_activity('assignment Status Changed [ID: ' . $id . ' Status(Active/Inactive): ' . $status . ']');
+
+            // Admin marked assignment
+            $this->db->reset_query();
+            $this->db->where('id', $id);
+            $assignment = $this->db->get(db_prefix() . 'assignments')->row();
+            $status_text = 'In active';
+            if($status){
+                $status_text = 'Active';
+            }
+            $this->log_assignment_activity($assignment->rel_id, 'assignment_assignment_status_changed', false, serialize([
+                '<custom_data>'. 
+                _l('assignment') . ' = '. $assignment->assignment_number .'<br />'. 
+                'Staff  = '. get_staff_full_name($assignment->staff) .'<br />'. 
+                'Status = '. $status_text .'<br />'. 
+                _l('description') . ' = '. $assignment->description . 
+                '</custom_data>',
+            ]));
+
+            return true;
+        }
+
+        return false;
+    }
 }

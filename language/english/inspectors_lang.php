@@ -149,9 +149,9 @@ $lang['inspector_activity_updated_qty_item']               = 'updated quantity o
 $lang['inspector_activity_added_item']                     = 'added new item <b>%s</b>';
 $lang['inspector_activity_sent_to_client']                 = 'sent inspector to client';
 
-$lang['inspector_staffs']                        	= 'Saffs';
-$lang['inspector_staff']                        	= 'Saff';
-$lang['inspector_staff']                        	= 'Saff';
+$lang['inspector_staffs']                        	= 'Staffs';
+$lang['inspector_staff']                        	= 'Staff';
+$lang['inspector_staff']                        	= 'Staff';
 $lang['permission_edit_own']                        	= 'Edit own';
 $lang['inspector_activity_changed']                        	= 'Inspector activity changed';
 $lang['company_siup']                        	= 'SIUP';
@@ -161,6 +161,13 @@ $lang['client_add_edit_contact']     						= 'Add edit contact';
 $lang['permission_view_by_instansi']     						= 'Permission view by instansi';
 $lang['permission_view_by_unit']     						= 'Permission view by unit';
 $lang['allow_inspector_staff_only_view_inspectors_in_same_institution']     						= 'Inspector staff only view inspectors in same institution';
+
+$lang['inspector_staff_set_assignment_title']     						= 'Set Assignment';
+$lang['assignment_staff']							= 'Staff';
+$lang['assignment_number']							= 'Assignment Number';
+$lang['assignment_date_expired']							= 'Expired';
+$lang['assignment_description']							= 'Description';
+$lang['inspector_staff_assignments']						= 'Assignments';
 
 
 /*

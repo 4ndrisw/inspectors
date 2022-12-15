@@ -104,10 +104,11 @@ if ($this->ci->input->post('my_customers')) {
 }
 
 array_push($where, 'AND ('.db_prefix().'clients.is_inspector = '.$is_inspector.') ');
-
+$institution_id = get_institution_id_by_staff_id($staff_id);
 if(is_inspector_staff($staff_id) && get_option('allow_inspector_staff_only_view_inspectors_in_same_institution')){
-    array_push($where, 'AND institution_id = '. get_institution_id_by_staff_id($staff_id));    
+    array_push($where, 'AND institution_id = '. $institution_id);    
 }
+
 
 // print_r($is_inspector); exit;
 
@@ -155,7 +156,7 @@ foreach ($rResult as $aRow) {
         $url .= '?contactid=' . $aRow['contact_id'];
     }
 
-    $company = '<a href="' . admin_url('inspectors/list_inspectors/' . $aRow['userid'] .'#/'. $aRow['userid']) . '" onclick="init_inspector(' . $aRow['userid'] . '); return false;">' . $aRow['company'] . '</a>';
+    $company = '<a href="' . admin_url('inspectors/list_inspectors/' . $aRow['userid'] .'#'. $aRow['userid']) . '" onclick="init_inspector(' . $aRow['userid'] . '); return false;">' . $aRow['company'] . '</a>';
     $company .= '<div class="row-options">';
     $company .= '<a href="' . $url . '">' . _l('view') . '</a>';
 

@@ -53,7 +53,7 @@ class Inspectors extends AdminController
             $data['switch_pipeline']       = true;
             $data['title']                 = _l('inspectors');
             $data['bodyclass']             = 'inspectors-total-manual';
-            $data['inspectors_years']       = $this->inspectors_model->get_inspectors_years();
+            //$data['inspectors_years']       = $this->inspectors_model->get_inspectors_years();
             $data['inspectors_sale_agents'] = $this->inspectors_model->get_sale_agents();
             if($id){
                 $this->load->view('admin/inspectors/manage_small_table', $data);
@@ -259,9 +259,14 @@ class Inspectors extends AdminController
         $data['title'] = 'Form add / Edit Staff';
         $data['activity']          = $this->inspectors_model->get_inspector_activity($id);
         $data['inspector']          = $inspector;
+
+        $data['categories']          = get_kelompok_alat();
+
+
         $_institution          = get_institutions($inspector->institution_id);
         $data['institution']   = $_institution[0];
-        $data['member']           = $this->staff_model->get('', ['active' => 1, 'client_id'=>$id]);
+        $data['members']           = $this->staff_model->get('', ['active' => 1, 'client_id'=>$inspector->userid]);
+
         $data['inspector_states'] = $this->inspectors_model->get_states();
         $data['totalNotes']        = total_rows(db_prefix() . 'notes', ['rel_id' => $id, 'rel_type' => 'inspector']);
 
@@ -650,5 +655,116 @@ class Inspectors extends AdminController
         $this->app->get_table_data(module_views_path('inspectors', 'admin/tables/staff'), array('client_id'=>$client_id));
     }
 
+
+    /* Since version 1.0.2 add inspector assignment */
+    public function add_assignment($rel_id, $rel_type)
+    {
+        $message    = '';
+        $alert_type = 'warning';
+        if ($this->input->post()) {
+            $success = $this->inspectors_model->add_assignment($this->input->post(), $rel_id);
+            if ($success) {
+                $alert_type = 'success';
+                $message    = _l('assignment_added_successfully');
+            }else{
+                $alert_type = 'warning';
+                $message    = _l('assignment_failed_to_add');
+            }
+        }
+        echo json_encode([
+            'alert_type' => $alert_type,
+            'message'    => $message,
+        ]);
+    }
+
+    public function get_assignments($id, $rel_type)
+    {
+        if ($this->input->is_ajax_request()) {
+            $this->app->get_table_data(module_views_path('inspectors', 'admin/tables/assignments'), [
+                'id'       => $id,
+                'rel_type' => $rel_type,
+            ]);
+        }
+    }
+
+    public function get_staff_assignments($id, $rel_type)
+    {
+        if ($this->input->is_ajax_request()) {
+            $this->app->get_table_data(module_views_path('inspectors', 'admin/tables/assignments'), [
+                'id'       => $id,
+                'rel_type' => $rel_type,
+            ]);
+        }
+    }
+
+    public function my_assignments()
+    {
+        if ($this->input->is_ajax_request()) {
+            $this->app->get_table_data(module_views_path('inspectors', 'admin/tables/staff_assignments'));
+        }
+    }
+
+    public function assignments()
+    {
+        $this->load->model('staff_model');
+        $data['members']   = $this->staff_model->get('', ['active' => 1]);
+        $data['title']     = _l('assignments');
+        $data['bodyclass'] = 'all-assignments';
+        $this->load->view('admin/utilities/all_assignments', $data);
+    }
+
+    public function assignments_table()
+    {
+        if ($this->input->is_ajax_request()) {
+            $this->app->get_table_data(module_views_path('inspectors', 'admin/tables/all_assignments'));
+        }
+    }
+
+    /* Since version 1.0.2 delete client assignment */
+    public function delete_assignment($rel_id, $id, $rel_type)
+    {
+        if (!$id && !$rel_id) {
+            die('No assignment found');
+        }
+        $success    = $this->inspectors_model->delete_assignment($id);
+        $alert_type = 'warning';
+        $message    = _l('assignment_failed_to_delete');
+        if ($success) {
+            $alert_type = 'success';
+            $message    = _l('assignment_deleted');
+        }
+        echo json_encode([
+            'alert_type' => $alert_type,
+            'message'    => $message,
+        ]);
+    }
+
+    public function get_assignment($id)
+    {
+        $assignment = $this->inspectors_model->get_assignments($id);
+        if ($assignment) {
+            if ($assignment->creator == get_staff_user_id() || is_admin()) {
+                $assignment->date_issued        = _d($assignment->date_issued);
+                $assignment->date_expired        = _d($assignment->date_expired);
+                //$assignment->category        = $assignment->category;
+                $assignment->description = clear_textarea_breaks($assignment->description);
+                echo json_encode($assignment);
+            }
+        }
+    }
+
+
+
+    public function edit_assignment($id)
+    {
+        $assignment = $this->inspectors_model->get_assignments($id);
+        if ($assignment && ($assignment->creator == get_staff_user_id() || is_admin()) && $assignment->isnotified == 0) {
+            $success = $this->inspectors_model->edit_assignment($this->input->post(), $id);
+            echo json_encode([
+                    'alert_type' => 'success',
+                    'message'    => ($success ? _l('updated_successfully', _l('assignment')) : ''),
+                ]);
+        }
+    }
 
 }

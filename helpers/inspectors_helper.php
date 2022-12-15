@@ -38,12 +38,9 @@ function get_institution_id_by_staff_id($staff_id){
 
 function get_institution_id_by_staff_id($staff_id){
     $CI = &get_instance();
-    $inspector_id = get_inspector_id_by_staff_id($staff_id);
-        $CI->db->select('institution_id');
-        $CI->db->join(db_prefix() . 'clients', 'client_id = userid');
-        
+        $CI->db->select(['institution_id']);
+        $CI->db->join(db_prefix() . 'clients', db_prefix() . 'clients.userid = '. db_prefix() . 'staff.client_id');
         $CI->db->where('staffid', $staff_id);
-
     return $CI->db->get(db_prefix() . 'staff')->row('institution_id');
 }
 
